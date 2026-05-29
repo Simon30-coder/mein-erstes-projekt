@@ -28,13 +28,16 @@ LUT in the universal `.cube` format — the standard "LUT file" editing apps imp
 
 ## How to apply it
 
-- **CapCut / VN (mobile, for reels):** add your clip → Filters / Adjust → *Import LUT* → choose the `.cube` file. Dial intensity to taste (try 70–90%).
+- **CapCut (iPad "desktop-style" / Mac / PC):** open the **Filters** tab → **Import** → pick the `.cube`, then drag it onto your clip and set intensity (~70–90%). *Note: the basic CapCut phone app can't import custom LUTs — use the desktop-style app, or VN below.*
+- **VN (free, mobile):** select clip → **Filters → LUT → Import** → choose the `.cube`.
 - **Instagram:** Instagram itself can't import LUTs, so grade in CapCut/VN first, export, then upload the graded reel.
 - **Premiere Pro:** Lumetri Color → Creative → *Look* → Browse → select the `.cube`.
 - **DaVinci Resolve:** right-click a clip → *LUT* → or Color page → LUTs.
 - **Final Cut Pro:** add the *Custom LUT* effect → Choose Custom LUT.
 
-> Tip: shoot/expose a touch brighter and flatter than usual — pastel grades read best on slightly low-contrast footage.
+> These `.cube` files use a minimal header (`LUT_3D_SIZE` + data only) for maximum compatibility — some apps (notably CapCut) silently reject the optional `TITLE`/`DOMAIN` lines and import an empty LUT.
+
+> Tip: shoot/expose a touch brighter and flatter than usual — these grades read best on slightly low-contrast footage.
 
 ## Regenerating / tweaking
 

@@ -126,13 +126,10 @@ PRESETS = {
 
 def write_lut(filename, p):
     denom = SIZE - 1
-    lines = [
-        f'TITLE "{p["title"]}"',
-        f"LUT_3D_SIZE {SIZE}",
-        "DOMAIN_MIN 0.0 0.0 0.0",
-        "DOMAIN_MAX 1.0 1.0 1.0",
-        "",
-    ]
+    # Minimal, maximally-compatible header: some parsers (notably CapCut)
+    # reject the optional TITLE / DOMAIN_MIN / DOMAIN_MAX lines or a blank
+    # line before the data, so we emit only LUT_3D_SIZE + the data rows.
+    lines = [f"LUT_3D_SIZE {SIZE}"]
     # .cube ordering: red index varies fastest
     for bi in range(SIZE):
         for gi in range(SIZE):
