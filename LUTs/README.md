@@ -1,17 +1,30 @@
-# Pastel Cinematic Clean — LUT
+# Studio Reels — Cinematic LUT Pack
 
-A soft, clean, cinematic pastel color grade for studio Instagram reels.
+Three clean, cinematic color grades for studio Instagram reels. Each is a 33³ 3D
+LUT in the universal `.cube` format — the standard "LUT file" editing apps import.
 
-**File:** [`Pastel_Cinematic_Clean.cube`](../Pastel_Cinematic_Clean.cube) — a 33³ 3D LUT in the
-universal `.cube` format. `.cube` is the standard "LUT file" that editing apps import.
+| Look | File | Vibe |
+|------|------|------|
+| **Pastel Cinematic Clean** | [`Pastel_Cinematic_Clean.cube`](../Pastel_Cinematic_Clean.cube) | Soft, muted, calm. Cool lifted shadows + creamy highlights. |
+| **Golden Studio** | [`Golden_Studio.cube`](../Golden_Studio.cube) | Warm, glowy golden-hour. Honey highlights, flattering skin. |
+| **Editorial** | [`Editorial.cube`](../Editorial.cube) | Crisp fashion look. Clean whites, cooler edge, more contrast. |
 
-## The look
+## The looks
 
+**Pastel Cinematic Clean**
 - Lifted, slightly cool shadows — a faded-film "clean" base, never crushed blacks
 - Soft highlight rolloff — creamy whites with no harsh clipping
-- Gentle cinematic contrast — depth without heaviness
-- Split toning — teal shadows, warm-peach highlights
-- Pastel desaturation — soft, muted color for that calm studio feel
+- Gentle contrast, teal shadows / warm-peach highlights, pastel desaturation
+
+**Golden Studio**
+- Warm honey lift carried through the shadows
+- Glowy golden highlights with a soft shoulder
+- Near-natural saturation so warmth reads rich, not faded
+
+**Editorial**
+- Minimal, slightly cool lift — deeper, cleaner blacks
+- Neutral crisp whites and a touch more contrast
+- Lightly desaturated for a polished magazine look
 
 ## How to apply it
 
