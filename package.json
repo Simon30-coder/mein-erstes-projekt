@@ -1,0 +1,22 @@
+{
+  "name": "before-after-animation",
+  "version": "1.0.0",
+  "description": "Remotion before/after photo transition (9:16)",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion render BeforeAfter out/before-after.mp4",
+    "rotate-images": "node scripts/rotate-images.mjs",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.392",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.392"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.0",
+    "sharp": "0.34.4",
+    "typescript": "5.8.3"
+  }
+}
