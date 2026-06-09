@@ -106,7 +106,7 @@ export const BeforeAfter: React.FC = () => {
         }}
       >
         <Img
-          src={staticFile("after.jpeg")}
+          src={staticFile("before.jpeg")}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
       </div>
@@ -123,7 +123,7 @@ export const BeforeAfter: React.FC = () => {
         }}
       >
         <Img
-          src={staticFile("before.jpeg")}
+          src={staticFile("after.jpeg")}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
 
