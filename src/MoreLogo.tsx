@@ -24,7 +24,13 @@ import {
 const FINAL_ROTATION_Y = -45;
 const LOGO_WIDTH = 1180; // px, on the 1920x1080 canvas
 
-export const MoreLogo: React.FC = () => {
+export type MoreLogoProps = {
+  // Background fill. Defaults to transparent (for alpha renders); pass an
+  // opaque color (e.g. "#FFFFFF") for flat MP4 output.
+  background: string;
+};
+
+export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
@@ -68,7 +74,7 @@ export const MoreLogo: React.FC = () => {
   const rotateY = rotateYEnter + driftRotate;
 
   return (
-    <AbsoluteFill style={{backgroundColor: 'transparent'}}>
+    <AbsoluteFill style={{backgroundColor: background}}>
       <AbsoluteFill
         style={{
           justifyContent: 'center',

@@ -6,7 +6,7 @@
     "dev": "remotion studio",
     "render": "remotion render MoreLogo out/more-logo.mov --codec=prores --prores-profile=4444",
     "render:webm": "remotion render MoreLogo out/more-logo.webm --codec=vp8 --image-format=png",
-    "render:mp4": "remotion render MoreLogo out/more-logo.mp4 --codec=h264",
+    "render:mp4": "remotion render MoreLogo out/more-logo.mp4 --codec=h264 --props={\"background\":\"#FFFFFF\"}",
     "upgrade": "remotion upgrade"
   },
   "dependencies": {
