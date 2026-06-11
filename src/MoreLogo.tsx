@@ -97,12 +97,14 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
               width: '100%',
               height: 'auto',
               display: 'block',
-              // Layered red glow halo (tight + wide) plus a grounding shadow.
+              // Refined, elegant red bloom matching the reference's glow:
+              // a tight bright inner core fading to a soft, restrained halo
+              // (not a heavy wide haze). Reads as a glowing light.
               filter:
-                `drop-shadow(0 0 14px rgba(255, 40, 40, ${0.85 * glow})) ` +
-                `drop-shadow(0 0 40px rgba(255, 0, 0, ${0.6 * glow})) ` +
-                `drop-shadow(0 0 90px rgba(255, 20, 20, ${0.4 * glow})) ` +
-                `drop-shadow(0 22px 38px rgba(90, 0, 0, 0.45))`,
+                `drop-shadow(0 0 4px rgba(255, 175, 175, ${0.95 * glow})) ` +
+                `drop-shadow(0 0 10px rgba(255, 90, 90, ${0.9 * glow})) ` +
+                `drop-shadow(0 0 22px rgba(255, 45, 45, ${0.65 * glow})) ` +
+                `drop-shadow(0 0 48px rgba(240, 20, 20, ${0.4 * glow}))`,
             }}
           />
         </div>
