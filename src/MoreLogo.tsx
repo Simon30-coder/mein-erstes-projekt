@@ -58,20 +58,9 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
     extrapolateRight: 'clamp',
   });
 
-  // Rotation settles from a steeper angle into the final 45deg pose, adding
-  // momentum to the 3D entrance.
-  const rotateYEnter = interpolate(enter, [0, 1], [-68, FINAL_ROTATION_Y]);
-
-  // Subtle, slow idle drift so the held frames stay alive (tiny breathing of
-  // the angle + a gentle vertical bob) once it has settled.
-  const idle = interpolate(frame, [45, 150], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const driftRotate = Math.sin(idle * Math.PI * 2) * 2.2; // +/- 2.2deg
-  const driftY = Math.sin(idle * Math.PI * 2) * 6; // +/- 6px
-
-  const rotateY = rotateYEnter + driftRotate;
+  // Fixed 3D angle throughout — the logo holds the same pose with no rotation
+  // settle on entry and no idle rocking once it lands.
+  const rotateY = FINAL_ROTATION_Y;
 
   return (
     <AbsoluteFill style={{backgroundColor: background}}>
@@ -88,7 +77,7 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
           style={{
             width: LOGO_WIDTH,
             transformStyle: 'preserve-3d',
-            transform: `translateY(${translateY + driftY}px) rotateY(${rotateY}deg)`,
+            transform: `translateY(${translateY}px) rotateY(${rotateY}deg)`,
             filter: `blur(${blur}px)`,
             opacity,
             // A soft drop shadow grounds the 3D pose.
