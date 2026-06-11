@@ -1,0 +1,22 @@
+{
+  "name": "more-logo-animation",
+  "version": "1.0.0",
+  "description": "Remotion animation of the 'more' logo: red, blur-slide-up entrance with a 3D Y-axis rotation.",
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render MoreLogo out/more-logo.mov --codec=prores --prores-profile=4444",
+    "render:webm": "remotion render MoreLogo out/more-logo.webm --codec=vp8 --image-format=png",
+    "render:mp4": "remotion render MoreLogo out/more-logo.mp4 --codec=h264",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.475",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.475"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.0",
+    "typescript": "5.5.4"
+  }
+}
