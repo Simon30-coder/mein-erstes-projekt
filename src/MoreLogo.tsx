@@ -62,6 +62,13 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
   // settle on entry and no idle rocking once it lands.
   const rotateY = FINAL_ROTATION_Y;
 
+  // Glow builds up as the logo resolves into focus, then holds steady (no pulse).
+  const glow = interpolate(frame, [4, 40], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
   return (
     <AbsoluteFill style={{backgroundColor: background}}>
       <AbsoluteFill
@@ -85,12 +92,17 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
           }}
         >
           <Img
-            src={staticFile('logo-red.svg')}
+            src={staticFile('logo-metallic.svg')}
             style={{
               width: '100%',
               height: 'auto',
               display: 'block',
-              filter: 'drop-shadow(0 24px 40px rgba(180, 0, 0, 0.35))',
+              // Layered red glow halo (tight + wide) plus a grounding shadow.
+              filter:
+                `drop-shadow(0 0 14px rgba(255, 40, 40, ${0.85 * glow})) ` +
+                `drop-shadow(0 0 40px rgba(255, 0, 0, ${0.6 * glow})) ` +
+                `drop-shadow(0 0 90px rgba(255, 20, 20, ${0.4 * glow})) ` +
+                `drop-shadow(0 22px 38px rgba(90, 0, 0, 0.45))`,
             }}
           />
         </div>
