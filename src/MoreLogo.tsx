@@ -30,12 +30,20 @@ export type MoreLogoProps = {
   // Background fill. Defaults to transparent (for alpha renders); pass an
   // opaque color (e.g. "#FFFFFF") for flat MP4 output.
   background: string;
+  // Vertical position of the logo's center as a fraction of canvas height
+  // (0.5 = centered, lower values move it up). Defaults to centered.
+  logoAnchorY?: number;
 };
 
-export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
+export const MoreLogo: React.FC<MoreLogoProps> = ({
+  background,
+  logoAnchorY = 0.5,
+}) => {
   const frame = useCurrentFrame();
-  const {fps, width} = useVideoConfig();
+  const {fps, width, height} = useVideoConfig();
   const logoWidth = width * LOGO_WIDTH_FRACTION;
+  // Shift from the centered position to the requested anchor.
+  const anchorOffsetY = (logoAnchorY - 0.5) * height;
 
   // Spring drives the slide-up so it eases in with a touch of natural settle.
   const enter = spring({
@@ -87,7 +95,7 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
           style={{
             width: logoWidth,
             transformStyle: 'preserve-3d',
-            transform: `translateY(${translateY}px) rotateY(${rotateY}deg)`,
+            transform: `translateY(${translateY + anchorOffsetY}px) rotateY(${rotateY}deg)`,
             filter: `blur(${blur}px)`,
             opacity,
             // A soft drop shadow grounds the 3D pose.
