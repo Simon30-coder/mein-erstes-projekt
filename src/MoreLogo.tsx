@@ -22,7 +22,9 @@ import {
 // Final resting rotation. Negative tilts the RIGHT edge toward the camera,
 // so the wordmark visibly gets bigger from left to right.
 const FINAL_ROTATION_Y = -45;
-const LOGO_WIDTH = 1180; // px, on the 1920x1080 canvas
+// Logo width as a fraction of the canvas width, so it scales for both the
+// 16:9 and 9:16 (vertical) compositions.
+const LOGO_WIDTH_FRACTION = 0.62;
 
 export type MoreLogoProps = {
   // Background fill. Defaults to transparent (for alpha renders); pass an
@@ -32,7 +34,8 @@ export type MoreLogoProps = {
 
 export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
+  const {fps, width} = useVideoConfig();
+  const logoWidth = width * LOGO_WIDTH_FRACTION;
 
   // Spring drives the slide-up so it eases in with a touch of natural settle.
   const enter = spring({
@@ -82,7 +85,7 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
       >
         <div
           style={{
-            width: LOGO_WIDTH,
+            width: logoWidth,
             transformStyle: 'preserve-3d',
             transform: `translateY(${translateY}px) rotateY(${rotateY}deg)`,
             filter: `blur(${blur}px)`,
