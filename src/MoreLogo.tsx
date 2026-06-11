@@ -92,7 +92,7 @@ export const MoreLogo: React.FC<MoreLogoProps> = ({background}) => {
           }}
         >
           <Img
-            src={staticFile('logo-metallic.svg')}
+            src={staticFile('logo-red.svg')}
             style={{
               width: '100%',
               height: 'auto',
