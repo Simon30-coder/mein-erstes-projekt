@@ -1,0 +1,5 @@
+node_modules/
+.remotion/
+# Large ProRes master is regenerated via `npm run render`; keep it out of git.
+out/*.mov
+scripts/_*.png

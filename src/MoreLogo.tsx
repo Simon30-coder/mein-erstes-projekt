@@ -1,0 +1,125 @@
+import {
+  AbsoluteFill,
+  Img,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+  Easing,
+} from 'remotion';
+
+/**
+ * "more" logo reveal.
+ *
+ * - Background: transparent (render with an alpha-capable codec, e.g. ProRes 4444).
+ * - Logo: bright red (#FF0000), vectorized for crisp edges through the 3D rotation.
+ * - Entrance: blur-slide up (rises from below while a heavy blur resolves to sharp).
+ * - Pose: rotated ~45deg on the Y axis with perspective, so it reads as 3D and
+ *   grows in size from left to right (the right edge sits closer to the camera).
+ */
+
+// Final resting rotation. Negative tilts the RIGHT edge toward the camera,
+// so the wordmark visibly gets bigger from left to right.
+const FINAL_ROTATION_Y = -45;
+// Logo width as a fraction of the canvas width, so it scales for both the
+// 16:9 and 9:16 (vertical) compositions.
+const LOGO_WIDTH_FRACTION = 0.62;
+
+export type MoreLogoProps = {
+  // Background fill. Defaults to transparent (for alpha renders); pass an
+  // opaque color (e.g. "#FFFFFF") for flat MP4 output.
+  background: string;
+  // Vertical position of the logo's center as a fraction of canvas height
+  // (0.5 = centered, lower values move it up). Defaults to centered.
+  logoAnchorY?: number;
+};
+
+export const MoreLogo: React.FC<MoreLogoProps> = ({
+  background,
+  logoAnchorY = 0.5,
+}) => {
+  const frame = useCurrentFrame();
+  const {fps, width, height} = useVideoConfig();
+  const logoWidth = width * LOGO_WIDTH_FRACTION;
+  // Shift from the centered position to the requested anchor.
+  const anchorOffsetY = (logoAnchorY - 0.5) * height;
+
+  // Spring drives the slide-up so it eases in with a touch of natural settle.
+  const enter = spring({
+    frame,
+    fps,
+    config: {damping: 200, mass: 1.1, stiffness: 90},
+    durationInFrames: 45,
+  });
+
+  // Slide up: starts 240px low, rises to its resting position.
+  const translateY = interpolate(enter, [0, 1], [240, 0]);
+
+  // Blur resolves from heavy to razor sharp over the first ~1.3s.
+  const blur = interpolate(frame, [0, 38], [26, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
+  // Fade in alongside the blur.
+  const opacity = interpolate(frame, [0, 30], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Fixed 3D angle throughout — the logo holds the same pose with no rotation
+  // settle on entry and no idle rocking once it lands.
+  const rotateY = FINAL_ROTATION_Y;
+
+  // Glow builds up as the logo resolves into focus, then holds steady (no pulse).
+  const glow = interpolate(frame, [4, 40], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
+  });
+
+  return (
+    <AbsoluteFill style={{backgroundColor: background}}>
+      <AbsoluteFill
+        style={{
+          justifyContent: 'center',
+          alignItems: 'center',
+          // Perspective makes the Y rotation read as real depth.
+          perspective: 1700,
+          perspectiveOrigin: 'center center',
+        }}
+      >
+        <div
+          style={{
+            width: logoWidth,
+            transformStyle: 'preserve-3d',
+            transform: `translateY(${translateY + anchorOffsetY}px) rotateY(${rotateY}deg)`,
+            filter: `blur(${blur}px)`,
+            opacity,
+            // A soft drop shadow grounds the 3D pose.
+            willChange: 'transform, filter, opacity',
+          }}
+        >
+          <Img
+            src={staticFile('logo-red.svg')}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: 'block',
+              // Refined, elegant red bloom matching the reference's glow:
+              // a tight bright inner core fading to a soft, restrained halo
+              // (not a heavy wide haze). Reads as a glowing light.
+              filter:
+                `drop-shadow(0 0 4px rgba(255, 175, 175, ${0.95 * glow})) ` +
+                `drop-shadow(0 0 10px rgba(255, 90, 90, ${0.9 * glow})) ` +
+                `drop-shadow(0 0 22px rgba(255, 45, 45, ${0.65 * glow})) ` +
+                `drop-shadow(0 0 48px rgba(240, 20, 20, ${0.4 * glow}))`,
+            }}
+          />
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
