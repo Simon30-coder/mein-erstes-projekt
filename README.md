@@ -4,9 +4,9 @@ Ein digitales Brettspiel im Browser: Wer schafft es in drei Runden, Präsident d
 
 | Runde | Leitfrage | Inhalt |
 |---|---|---|
-| **I · Qualifikation** | Bist du überhaupt qualifiziert? | Geburtsort, Mindestalter 35, Sperre „14 Jahre Wohnsitz“, Vorwahl |
-| **II · Nominierung** | Wirst du Kandidat deiner Partei? | Super Tuesday, TV-Debatte, Skandale, Nationaler Parteitag |
-| **III · Wahlkampf** | Gewinnst du die Wahl? | Bundesstaaten erobern, 270 von 538 Wahlmännern, Wahlabend |
+| **I · Qualifikation** | Bist du überhaupt qualifiziert? | Geburtsort, Mindestalter 35, Sperre „14 Jahre Wohnsitz“, Lebenslauf, Anmeldung der Kandidatur |
+| **II · Nominierung** | Wirst du Kandidat deiner Partei? | Iowa, New Hampshire, Super Tuesday, Vorwahl-Debatte, Skandale, Nationaler Parteitag |
+| **III · Wahlkampf** | Gewinnst du die Wahl? | Vizepräsident, Bundesstaaten erobern (Würfelprobe), 270 von 538 Wahlmännern, Wahlabend |
 
 ## Spielen
 
@@ -22,7 +22,8 @@ Ein digitales Brettspiel im Browser: Wer schafft es in drei Runden, Präsident d
 - Würfeln und so viele Felder vorziehen. Das Feld, auf dem du landest, wirkt: vor, zurück, Spenden, Umfragen, Quiz oder News.
 - **Gelbe Sperre (Runde 1):** Jeder muss dort anhalten und braucht eine **gerade Zahl**, um weiterzuziehen.
 - **Goldene Schlüsselfelder:** Das letzte Feld jeder Runde. Man muss **genau** darauf landen, sonst bleibt man stehen.
-- **Bundesstaaten (Runde 3):** Landest du auf einem freien Staat, gehört er dir. Mit besseren Umfragewerten oder einer Werbekampagne kannst du ihn anderen abnehmen.
+- **Bundesstaaten (Runde 3):** Auf jedem Staat hältst du eine Kundgebung und musst die Zahl auf dem Feld würfeln (3+ bis 6+, je nach Wahlmännern). Umfragewerte ab 55 % und der eigene Heimatstaat geben je +1. Gehört der Staat schon jemand anderem, ist es um 1 schwerer. Misslingt es, kann man mit Spenden einen zweiten Versuch kaufen.
+- **Vorteile:** Zusätzliche Schritte gibt es nur für das, was man im echten Leben wirklich braucht (Mindestalter, Unterschriften für den Stimmzettel, Anmeldung bei der Wahlbehörde, Delegierte, Vizepräsident). Alle anderen Vorteile bringen Spenden oder Umfragewerte.
 - **Berater:** Für 5 Mio. $ wirfst du zwei Würfel und nimmst den besseren.
 - **Wahlabend:** Die US-Karte färbt sich Staat für Staat. Wer 270 Wahlmänner hat, gewinnt. Schafft das niemand, entscheidet wie in echt das Repräsentantenhaus (jeder Staat hat eine Stimme).
 
@@ -31,7 +32,7 @@ Ein digitales Brettspiel im Browser: Wer schafft es in drei Runden, Präsident d
 | Einstellung | Möglichkeiten |
 |---|---|
 | Spielende | **Gemeinsamer Wahlabend** (empfohlen) · **270-Hürde** · **Einfaches Rennen** |
-| Extras | Wissens-Quiz · Breaking-News-Karten · Spenden & Umfragen (jeweils an/aus) |
+| Extras | Wissens-Quiz · Breaking-News-Karten (jeweils an/aus) |
 | KI-Tempo | Gemütlich · Normal · Schnell |
 | Ansicht | Brett wechselt automatisch zur Runde des Spielers am Zug |
 
@@ -47,7 +48,7 @@ Ein digitales Brettspiel im Browser: Wer schafft es in drei Runden, Präsident d
 
 Jeder Text hat eine deutsche und eine englische Version, z. B. `L('Hohe Inflation', 'High inflation')`.
 
-**Achtung bei Runde 1:** Die Schritte sind so gewählt, dass alle „35+“-Felder genau auf der Sperre (Feld 13) landen und „Du gewinnst die Vorwahl“ (+5) genau auf dem Schlüsselfeld. Wer dort Felder verschiebt, sollte die Schrittzahlen mit anpassen.
+**Achtung beim Verschieben:** Manche Schritte sind genau abgezählt. In Runde 1 landen alle „35+“-Felder genau auf der Sperre (Feld 13) und „Bei der Wahlbehörde angemeldet“ (+1) genau auf dem Ziel. In Runde 2 führt „Du gewinnst die Vorwahlen“ (+5) genau zum Parteitag. Wer dort Felder verschiebt, sollte die Schrittzahlen mit anpassen. Wie schwer ein Bundesstaat zu erobern ist, steht in `PG.stateNeed` (ebenfalls in `js/data.js`).
 
 ## Dateien
 

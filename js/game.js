@@ -21,7 +21,7 @@ window.PG = window.PG || {};
   function createState(cfg) {
     return {
       v: 1,
-      settings: Object.assign({}, cfg.settings),
+      settings: Object.assign({}, cfg.settings, { resources: true }),
       players: cfg.players.map(function (p, i) {
         return {
           id: i, name: p.name, color: p.color, isBot: !!p.isBot, home: p.home,
@@ -103,7 +103,7 @@ window.PG = window.PG || {};
   function resume() {
     const s = readSave();
     if (!s) { UI().showScreen('start'); return; }
-    s.settings = Object.assign({ finale: 'night', quiz: true, news: true, resources: true, botSpeed: 'normal', followCam: true }, s.settings || {});
+    s.settings = Object.assign({ finale: 'night', quiz: true, news: true, botSpeed: 'normal', followCam: true }, s.settings || {}, { resources: true });
     begin(s);
   }
 
@@ -360,21 +360,12 @@ window.PG = window.PG || {};
     const s = st();
     if (!s.settings.quiz) return;
     const q = PG.QUIZ[drawFrom('quizDeck', PG.QUIZ.length)];
-    const tgt = computeTarget(p, 2);
-    const canMove = tgt !== null && tgt !== p.pos;
     const correct = await UI().quiz({
       q: q, player: p, isBot: p.isBot, botCorrect: Math.random() < 0.65,
-      rewardText: function (ok) {
-        if (!ok) return t('quizNoReward');
-        if (canMove) return t('quizReward');
-        return s.settings.resources ? t('quizRewardPolls') : t('quizNoReward');
-      }
+      rewardText: function (ok) { return ok ? t('quizReward') : t('quizNoReward'); }
     });
     log(correct ? 'logQuizOk' : 'logQuizBad', { name: p.name }, p.color);
-    if (correct) {
-      if (canMove) await moveBy(p, 2, ctx);
-      else applyRes(p, 0, 3);
-    }
+    if (correct) applyRes(p, 0, 4);
   }
 
   function leaderOf() {
@@ -447,19 +438,30 @@ window.PG = window.PG || {};
     const others = s.players.filter(function (q) { return q.id !== p.id; });
     let pool = others.filter(function (q) { return q.round === p.round; });
     if (!pool.length) pool = others;
-    const opp = pool.length ? pool[PG.rnd(pool.length)] : { name: t('npcName'), color: '#5B6475' };
+    const opp = pool.length ? pool[PG.rnd(pool.length)] : { name: t('npcName'), color: '#5B6475', isNpc: true };
     const ra = PG.d6(), rb = PG.d6();
     const tie = ra === rb, win = ra > rb;
+    const winner = win ? p : opp, loser = win ? opp : p;
     await UI().duel({
       title: tx(f.title), text: t('duelText', { a: p.name, b: opp.name }), a: p, b: opp, ra: ra, rb: rb,
-      resultText: tie ? t('duelTie') : t('duelWin', { name: win ? p.name : opp.name }),
+      resultText: tie ? t('duelTie') : t('duelWinPolls', { name: winner.name, loser: loser.name }),
       tone: tie ? 'neutral' : (win ? 'good' : 'bad'), auto: p.isBot
     });
     log('logDuel', { a: p.name, ra: ra, b: opp.name, rb: rb }, p.color);
-    if (!tie) await moveBy(p, win ? 2 : -2, ctx);
+    if (!tie) {
+      if (!winner.isNpc) winner.polls = PG.clamp(winner.polls + 6, 1, 99);
+      if (!loser.isNpc) loser.polls = PG.clamp(loser.polls - 3, 1, 99);
+      UI().renderPlayers();
+    }
   }
 
-  function stateIcon(code) { return '<span class="card-code">' + code + '</span>'; }
+  /** Bonus auf die Würfelprobe um einen Bundesstaat */
+  function stateBonus(p, code) {
+    const parts = [];
+    if (p.polls >= 55) parts.push(t('stateBonusPolls'));
+    if (p.home === code) parts.push(t('stateBonusHome'));
+    return { value: parts.length, parts: parts };
+  }
 
   async function doState(p, f) {
     const s = st();
@@ -472,82 +474,35 @@ window.PG = window.PG || {};
       return;
     }
     const ownerId = s.owners[code];
-    const claim = function () {
-      s.owners[code] = p.id;
-      PG.Audio.claim();
-      log('logState', { name: p.name, state: S.name, ev: S.ev }, p.color);
-      PG.Board.render();
-      UI().renderPlayers();
-    };
-    if (ownerId === undefined) {
-      claim();
-      await UI().event({
-        kind: 'state', eyebrow: t('evState'), icon: stateIcon(code), title: t('stateClaimTitle', { state: sName }),
-        text: t('stateClaim', { name: p.name, state: sName, ev: S.ev }),
-        chips: [{ label: '+' + S.ev + ' ' + t('evShort'), tone: 'good' }], auto: p.isBot
-      });
-      return;
-    }
     if (ownerId === p.id) {
       applyRes(p, 0, 2);
       UI().toast({ icon: '🏠', title: sName, text: t('stateOwn', { state: sName, name: p.name }), chips: resChips(0, 2), tone: 'good' });
       await PG.sleep(p.isBot ? 800 * PG.speed() : 400);
       return;
     }
-    const owner = PG.player(ownerId);
-    if (s.settings.resources) {
-      if (p.polls > owner.polls) {
-        claim();
-        await UI().event({
-          kind: 'state', eyebrow: t('evState'), icon: stateIcon(code), title: t('stateTakeTitle', { state: sName }),
-          text: t('stateTake', { name: p.name, owner: owner.name, state: sName }),
-          chips: [{ label: '+' + S.ev + ' ' + t('evShort'), tone: 'good' }], auto: p.isBot
-        });
-        return;
-      }
-      const cost = 3 + Math.ceil(S.ev / 5);
-      const costTxt = PG.fmt.money(cost);
-      if (p.money >= cost) {
-        let buy;
-        if (p.isBot) {
-          buy = p.money >= cost + 4;
-        } else {
-          buy = await UI().modal({
-            kind: 'state', eyebrow: t('evState'), icon: stateIcon(code), title: sName,
-            text: t('stateHeld', { state: sName, owner: owner.name, ev: S.ev, cost: costTxt }),
-            buttons: [{ label: t('stateBuy', { cost: costTxt }), value: true }, { label: t('statePass'), value: false, cls: 'btn-outline' }]
-          });
-        }
-        if (buy) {
-          p.money -= cost;
-          claim();
-          await UI().event({
-            kind: 'state', eyebrow: t('evState'), icon: stateIcon(code), title: t('stateTakeTitle', { state: sName }),
-            text: t('stateBought', { name: p.name, cost: costTxt, state: sName }),
-            chips: [{ label: '+' + S.ev + ' ' + t('evShort'), tone: 'good' }, { label: t('chipMoney', { v: PG.fmt.money(-cost, true) }), tone: 'bad' }],
-            auto: p.isBot
-          });
-        } else if (p.isBot) {
-          UI().toast({ icon: stateIcon(code), title: sName, text: t('statePassed', { name: p.name, state: sName, owner: owner.name }) });
-          await PG.sleep(700 * PG.speed());
-        }
-      } else {
-        await UI().event({
-          kind: 'info', eyebrow: t('evState'), icon: stateIcon(code), title: sName,
-          text: t('stateNoMoney', { state: sName, owner: owner.name, cost: costTxt }), auto: p.isBot
-        });
-      }
-      return;
-    }
-    /* Ohne Ressourcen: Würfelduell um den Staat */
-    const ra = PG.d6(), rb = PG.d6();
-    await UI().duel({
-      eyebrow: t('evState'), icon: stateIcon(code), title: sName,
-      text: t('stateDuel', { state: sName, owner: owner.name }), a: p, b: owner, ra: ra, rb: rb,
-      resultText: ra > rb ? t('stateDuelWin', { name: p.name, state: sName }) : t('stateDuelLose', { state: sName, owner: owner.name }),
-      tone: ra > rb ? 'good' : 'bad', auto: p.isBot
+    const owner = ownerId !== undefined ? PG.player(ownerId) : null;
+    const need = PG.stateNeed(code, !!owner);
+    const bonus = stateBonus(p, code);
+    const cost = PG.stateRetryCost(code);
+    const res = await UI().stateChallenge({
+      code: code,
+      title: owner ? t('stateChOwned', { state: sName }) : t('stateChFree', { state: sName }),
+      text: owner ? t('stateChOwnedText', { state: sName, owner: owner.name, need: need })
+                  : t('stateChFreeText', { state: sName, ev: S.ev, need: need }),
+      need: need, bonus: bonus.value, bonusParts: bonus.parts,
+      isBot: p.isBot, cost: cost, canRetry: p.money >= cost, botRetry: p.money >= cost + 5,
+      successText: t('stateWon', { name: p.name, state: sName, ev: S.ev }),
+      failText: owner ? t('stateFailOwned', { state: sName, owner: owner.name }) : t('stateFailFree', { state: sName })
     });
-    if (ra > rb) claim();
+    if (res.paid) p.money = Math.max(0, p.money - res.paid);
+    if (res.success) {
+      s.owners[code] = p.id;
+      log('logState', { name: p.name, state: S.name, ev: S.ev }, p.color);
+      PG.Board.render();
+    } else {
+      log('logStateFail', { name: p.name, state: S.name }, p.color);
+    }
+    UI().renderPlayers();
   }
 
   /* -----------------------------------------------------------------------
@@ -680,7 +635,7 @@ window.PG = window.PG || {};
     if (f.type === 'steps') score += f.steps * 1.5;
     if (f.type === 'again') score += 4;
     if (f.type === 'skip') score -= 6;
-    if (f.type === 'state' && s.owners[f.state] === undefined) score += 4 + PG.STATES[f.state].ev / 8;
+    if (f.type === 'state' && s.owners[f.state] !== p.id) score += (7 - PG.stateNeed(f.state, s.owners[f.state] !== undefined)) * (1 + PG.STATES[f.state].ev / 20);
     return score;
   }
 

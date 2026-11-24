@@ -66,12 +66,12 @@ window.PG = window.PG || {};
     switch (f.type) {
       case 'steps': return (f.steps > 0 ? '+' : '−') + Math.abs(f.steps);
       case 'money': return s.resources ? PG.fmt.money(f.money, true) : '';
-      case 'polls': return s.resources ? PG.fmt.polls(f.polls, true) : '';
+      case 'polls': return s.resources ? (f.money ? PG.fmt.money(f.money, true) + ' · ' : '') + PG.fmt.polls(f.polls, true) : '';
       case 'again': return '×2';
       case 'skip': return '⏸';
       case 'gate': return '2 · 4 · 6';
-      case 'quiz': return s.quiz ? '+2' : '';
-      case 'duel': return '±2';
+      case 'quiz': return s.quiz ? PG.fmt.polls(4, true) : '';
+      case 'duel': return PG.fmt.polls(6, true);
       default: return '';
     }
   }
@@ -93,6 +93,7 @@ window.PG = window.PG || {};
         style += '--owner:' + owner.color + ';';
         ownerBadge = '<span class="tile-owner" title="' + esc(owner.name) + '">' + esc(PG.initial(owner.name)) + '</span>';
       }
+      if (!off) ownerBadge += '<span class="tile-need" title="' + esc(t('stateNeedInfo', { need: PG.stateNeed(f.state, !!owner) })) + '">' + PG.stateNeed(f.state, !!owner) + '+</span>';
     } else {
       title = tx(f.title);
       icon = f.icon;

@@ -103,18 +103,22 @@ window.PG = window.PG || {};
      type:
        start  – Startfeld
        plain  – nur Text, keine Wirkung
-       steps  – vor/zurück (steps: +/-)
+       steps  – vor/zurück (steps: +/-); kann zusätzlich money/polls haben
        gate   – Sperre: gerade Zahl würfeln (Runde 1)
        key    – Schlüsselfeld: genau landen → nächste Runde
        quiz   – Quizfrage
        news   – Breaking-News-Karte ziehen
        money  – Spenden (money: +/- Mio. $)
-       polls  – Umfragewerte (polls: +/- %)
+       polls  – Umfragewerte (polls: +/- %); kann zusätzlich money haben
        again  – nochmal würfeln
        skip   – eine Runde aussetzen
-       duel   – TV-Duell gegen einen Mitspieler
-       state  – Bundesstaat (nur Runde 3)
-     Zusätzlich können steps-Felder auch money/polls haben (wirkt nur mit „Ressourcen").
+       duel   – TV-Duell gegen einen Mitspieler (um Umfragewerte)
+       state  – Bundesstaat (nur Runde 3): Würfelprobe zum Erobern
+
+     Regel für Vorteile: Zusätzliche Schritte gibt es nur für Dinge, die man
+     im echten Leben wirklich braucht, um Präsident zu werden (Alter,
+     Unterschriften für den Stimmzettel, Anmeldung, Delegierte, Vizepräsident …).
+     Alle anderen Vorteile bringen Spenden oder Umfragewerte.
      ----------------------------------------------------------------------- */
   const F = function (type, icon, title, text, extra) {
     return Object.assign({ type: type, icon: icon, title: title, text: text || null }, extra || {});
@@ -124,14 +128,14 @@ window.PG = window.PG || {};
   const STATE = function (code) { return F('state', '🗳️', null, null, { state: code }); };
 
   PG.BOARDS = [
-    /* ===================== RUNDE 1 ===================== */
+    /* ===================== RUNDE 1: Voraussetzungen & Lebenslauf ===================== */
     {
       id: 1,
       title: L('Qualifikation', 'Qualification'),
       question: L('Bist du überhaupt qualifiziert, Präsident zu werden?', 'Are you even qualified to become President?'),
       intro: L(
-        'Artikel II der US-Verfassung verlangt drei Dinge: Du musst in den USA geboren sein, mindestens 35 Jahre alt sein und 14 Jahre in den USA gewohnt haben. Danach geht es in die Vorwahlen deiner Partei.',
-        'Article II of the US Constitution demands three things: you must be a natural-born citizen, at least 35 years old and a US resident for 14 years. After that come your party’s primaries.'
+        'Artikel II der US-Verfassung verlangt drei Dinge: Du musst in den USA geboren sein, mindestens 35 Jahre alt sein und 14 Jahre in den USA gewohnt haben. Danach zählt dein Lebenslauf, und du bereitest deine Kandidatur vor.',
+        'Article II of the US Constitution demands three things: you must be a natural-born citizen, at least 35 years old and a US resident for 14 years. After that your résumé counts, and you prepare your candidacy.'
       ),
       gate: 13,
       fields: [
@@ -177,182 +181,202 @@ window.PG = window.PG || {};
         F('gate', '🏠', L('14 Jahre Wohnsitz', '14 years of residence'),
           L('Sperre! Hier muss jeder anhalten. Du musst 14 Jahre in den USA gewohnt haben: Würfle eine gerade Zahl (2, 4 oder 6), um weiterzuziehen.',
             'Barrier! Everyone has to stop here. You must have lived in the US for 14 years: roll an even number (2, 4 or 6) to move on.')),
-        QUIZ(),
+        F('money', '💎', L('Du kommst aus einer reichen Familie', 'You come from a rich family'),
+          L('Papa finanziert den Start deiner Kampagne.', 'Dad bankrolls your campaign launch.'),
+          { money: 8 }),
         F('steps', '🗣️', L('Parteikollege sagt etwas Unangebrachtes', 'Party member says something inappropriate'),
           L('Ein Parteikollege hat sich im Fernsehen danebenbenommen und alle fragen dich dazu. 1 Schritt zurück.',
             'A fellow party member misbehaved on TV and everyone asks you about it. 1 step back.'),
           { steps: -1, polls: -3 }),
-        F('money', '💵', L('Spendenessen in der Heimatstadt', 'Hometown fundraiser dinner'),
-          L('Deine Nachbarn sammeln für deinen Wahlkampf.', 'Your neighbours raise money for your campaign.'),
-          { money: 3 }),
+        QUIZ(),
         NEWS(),
+        F('polls', '🎖️', L('Du bist Veteran!', 'You are a veteran!'),
+          L('Du hast deinem Land beim Militär gedient. Das beeindruckt viele Wähler.', 'You served your country in the military. Many voters are impressed.'),
+          { polls: 6 }),
         F('steps', '🌪️', L('Lokalregierung reagiert zu spät auf Tornados', 'Local government reacted late to tornadoes'),
           L('Deine Partei regiert vor Ort und hat bei den Tornados zu spät reagiert. 1 Schritt zurück.',
             'Your party runs the local government and reacted too late to the tornadoes. 1 step back.'),
           { steps: -1, polls: -3 }),
-        F('polls', '🎤', L('Rede im Rathaus', 'Town hall speech'),
-          L('Deine Rede im Rathaus kommt richtig gut an.', 'Your town hall speech goes down really well.'),
+        F('money', '💵', L('Spendenessen in der Heimatstadt', 'Hometown fundraiser dinner'),
+          L('Deine Nachbarn sammeln für deinen Wahlkampf.', 'Your neighbours raise money for your campaign.'),
+          { money: 3 }),
+        F('steps', '📸', L('Peinliche Fotos aus der Studienzeit', 'Embarrassing college photos'),
+          L('Alte Partyfotos von dir tauchen im Internet auf. 2 Schritte zurück.', 'Old party pictures of you surface online. 2 steps back.'),
+          { steps: -2, polls: -3 }),
+        F('polls', '⚖️', L('Du bist Anwalt', 'You are an attorney'),
+          L('Du kennst die Gesetze in- und auswendig. Viele Präsidenten waren vorher Anwälte.', 'You know the law inside out. Many presidents were lawyers first.'),
           { polls: 4 }),
         QUIZ(),
-        F('steps', '📉', L('Der Präsident macht deine Partei unbeliebt', 'The President makes your party unpopular'),
-          L('Der amtierende Präsident aus deiner Partei hat miese Umfragewerte. Das färbt auf dich ab. 1 Schritt zurück.',
-            'The sitting President from your party has terrible approval ratings. It rubs off on you. 1 step back.'),
-          { steps: -1, polls: -4 }),
         NEWS(),
-        F('money', '🧢', L('Kleinspenden-Welle', 'Small-donor wave'),
-          L('Tausende Fans spenden je 20 Dollar.', 'Thousands of fans donate 20 dollars each.'),
+        F('money', '🔭', L('Erkundungskomitee gegründet', 'Exploratory committee formed'),
+          L('Ein „Exploratory Committee“ testet, ob du genug Unterstützer hättest, und sammelt schon Geld.',
+            'An exploratory committee tests whether you’d have enough supporters and already raises money.'),
           { money: 4 }),
-        QUIZ(),
-        F('steps', '🗳️', L('Du gewinnst die Vorwahl!', 'You win the primary!'),
-          L('Die Wähler deiner Partei haben entschieden: Du gewinnst die Vorwahl. 5 Schritte vor!',
-            'Your party’s voters have spoken: you win the primary. 5 steps forward!'),
-          { steps: 5, polls: 5 }),
+        F('steps', '✍️', L('Unterschriften für den Stimmzettel', 'Signatures for the ballot'),
+          L('Ohne genug Unterschriften kommst du in vielen Staaten gar nicht auf den Stimmzettel. Geschafft! 2 Schritte vor.',
+            'Without enough signatures you can’t even get on the ballot in many states. Done! 2 steps forward.'),
+          { steps: 2 }),
         NEWS(),
-        F('polls', '🌽', L('Hotdog auf der Iowa State Fair', 'Hot dog at the Iowa State Fair'),
-          L('Ein Pflichttermin für jeden Kandidaten. Du isst den Hotdog ohne Kleckern.', 'A must for every candidate. You eat the hot dog without a single stain.'),
+        F('polls', '🧾', L('Steuererklärung veröffentlicht', 'Tax returns released'),
+          L('Du zeigst, dass du nichts zu verbergen hast.', 'You show you have nothing to hide.'),
           { polls: 3 }),
-        F('again', '⚡', L('Wahlkampf-Schwung', 'Campaign momentum'),
-          L('Du hast Rückenwind. Würfle nochmal!', 'You’ve got the wind at your back. Roll again!')),
-        NEWS(),
-        F('key', '🔑', L('Vorwahl gewonnen: Du bist Delegierter!', 'Primary won: you are a delegate!'),
-          L('Du hast die Vorwahl in deinem Bundesstaat gewonnen und fährst zum Nationalen Parteitag. Weiter zu Runde 2!',
-            'You won the primary in your state and head to the National Convention. On to round 2!'))
+        F('steps', '📋', L('Bei der Wahlbehörde angemeldet', 'Registered with the FEC'),
+          L('Wer mehr als 5.000 Dollar sammelt, muss sich bei der Bundeswahlkommission (FEC) als Kandidat anmelden. Erledigt! 1 Schritt vor.',
+            'Anyone raising more than 5,000 dollars must register as a candidate with the Federal Election Commission. Done! 1 step forward.'),
+          { steps: 1 }),
+        F('key', '📣', L('Kandidatur angekündigt!', 'Candidacy announced!'),
+          L('Du bist qualifiziert und verkündest vor jubelnden Anhängern: „Ich kandidiere für das Amt des Präsidenten!“ Weiter zu Runde 2.',
+            'You are qualified and announce to cheering supporters: “I am running for President!” On to round 2.'))
       ]
     },
 
-    /* ===================== RUNDE 2 ===================== */
+    /* ===================== RUNDE 2: Vorwahlen bis Parteitag ===================== */
     {
       id: 2,
       title: L('Nominierung', 'Nomination'),
       question: L('Wirst du Präsidentschaftskandidat deiner Partei?', 'Will you become your party’s presidential nominee?'),
       intro: L(
-        'Jetzt kämpfst du um die Delegierten. Am Ende entscheidet der Nationale Parteitag, wer für die Partei ins Rennen ums Weiße Haus geht.',
-        'Now you fight for delegates. In the end the National Convention decides who runs for the White House on the party ticket.'
+        'Die Vorwahlen beginnen: In Caucuses und Primaries sammelst du Delegierte. Wer die Mehrheit hat, wird auf dem Nationalen Parteitag zum Kandidaten gekürt.',
+        'The primaries begin: in caucuses and primaries you collect delegates. Whoever has the majority is crowned nominee at the National Convention.'
       ),
       fields: [
         F('start', '🎖️', L('Kandidat aus deinem Bundesstaat', 'Candidate from your state'),
           L('Dein Heimatstaat {home} schickt dich ins Rennen um die Nominierung.', 'Your home state {home} sends you into the race for the nomination.')),
+        F('polls', '🌽', L('Iowa Caucus: Hotdog auf der State Fair', 'Iowa caucus: hot dog at the State Fair'),
+          L('Ein Pflichttermin vor dem ersten Caucus. Du isst den Hotdog ohne Kleckern.', 'A must before the first caucus. You eat the hot dog without a single stain.'),
+          { polls: 3 }),
         NEWS(),
-        QUIZ(),
-        F('again', '⚡', L('Super Tuesday', 'Super Tuesday'),
-          L('In über einem Dutzend Staaten wird am selben Tag gewählt. Würfle nochmal!', 'More than a dozen states vote on the same day. Roll again!')),
-        F('money', '💰', L('Super PAC gegründet', 'Super PAC launched'),
-          L('Ein Super PAC sammelt unbegrenzt Geld für dich.', 'A Super PAC raises unlimited money for you.'),
-          { money: 8 }),
-        F('steps', '🤝', L('Mächtige Freunde empfehlen dich', 'Powerful friends recommend you'),
-          L('Einflussreiche Leute sprechen sich für dich aus. 2 Schritte vor!', 'Influential people endorse you. 2 steps forward!'),
-          { steps: 2, polls: 3 }),
-        F('duel', '📺', L('Vorwahl-Debatte', 'Primary debate'),
-          L('TV-Duell gegen einen Mitspieler: Beide würfeln. Gewinnst du, geht es 2 Felder vor. Verlierst du, geht es 2 Felder zurück.',
-            'TV duel against another player: both roll. Win and you move 2 forward. Lose and you move 2 back.')),
+        F('polls', '🤝', L('Mächtige Freunde empfehlen dich', 'Powerful friends recommend you'),
+          L('Einflussreiche Leute sprechen sich öffentlich für dich aus.', 'Influential people publicly endorse you.'),
+          { polls: 5 }),
         F('polls', '🎙️', L('Auftritt in einer Late-Night-Show', 'Late-night show appearance'),
           L('Du bist witzig und das Publikum lacht mit dir, nicht über dich.', 'You’re funny, and the audience laughs with you, not at you.'),
           { polls: 5 }),
+        QUIZ(),
+        F('steps', '📉', L('Der Präsident macht deine Partei unbeliebt', 'The President makes your party unpopular'),
+          L('Der amtierende Präsident aus deiner Partei hat miese Umfragewerte. Das färbt auf dich ab. 1 Schritt zurück.',
+            'The sitting President from your party has terrible approval ratings. It rubs off on you. 1 step back.'),
+          { steps: -1, polls: -4 }),
+        F('steps', '🗳️', L('Sieg in New Hampshire', 'New Hampshire win'),
+          L('Du gewinnst die erste Primary und damit die ersten Delegierten. 2 Schritte vor!', 'You win the first primary and your first delegates. 2 steps forward!'),
+          { steps: 2 }),
+        F('money', '💰', L('Super PAC gegründet', 'Super PAC launched'),
+          L('Ein Super PAC sammelt unbegrenzt Geld für dich.', 'A Super PAC raises unlimited money for you.'),
+          { money: 8 }),
+        F('duel', '📺', L('Vorwahl-Debatte', 'Primary debate'),
+          L('TV-Duell gegen einen Mitspieler: Beide würfeln. Wer höher würfelt, gewinnt die Debatte (+6 % Umfragen), der Verlierer verliert 3 %.',
+            'TV duel against another player: both roll. The higher roll wins the debate (+6% polls), the loser drops 3%.')),
         F('steps', '🕵️', L('Affäre mit einem chinesischen Spion', 'Affair with a Chinese spy'),
           L('Du hattest eine Affäre mit einem chinesischen Spion. Riesenskandal! 6 Schritte zurück.',
             'You had an affair with a Chinese spy. Huge scandal! 6 steps back.'),
           { steps: -6, polls: -10 }),
+        F('again', '⚡', L('Super Tuesday', 'Super Tuesday'),
+          L('In über einem Dutzend Staaten wird am selben Tag gewählt. Du sammelst jede Menge Delegierte: Würfle nochmal!',
+            'More than a dozen states vote on the same day. You collect loads of delegates: roll again!')),
         NEWS(),
+        F('polls', '✍️', L('Obama hilft bei deiner Rede', 'Obama helps with your speech'),
+          L('Barack Obama hilft dir, eine überzeugende Rede für den Nationalen Parteitag zu schreiben.',
+            'Barack Obama helps you write a convincing speech for the National Convention.'),
+          { polls: 6 }),
+        F('skip', '⚖️', L('Ethik-Untersuchung', 'Ethics investigation'),
+          L('Ein Ausschuss prüft deine Finanzen. Setze eine Runde aus.', 'A committee is looking into your finances. Miss a turn.')),
+        F('steps', '🏆', L('Du gewinnst die Vorwahlen!', 'You win the primaries!'),
+          L('Du hast die Mehrheit der Delegierten. Ab zum Parteitag: 5 Schritte vor!', 'You have the majority of delegates. Off to the convention: 5 steps forward!'),
+          { steps: 5, polls: 3 }),
+        QUIZ(),
         F('money', '🥂', L('Spendengala in Hollywood', 'Hollywood fundraising gala'),
           L('Stars zahlen viel Geld für ein Foto mit dir.', 'Stars pay a fortune for a photo with you.'),
           { money: 5 }),
-        F('skip', '⚖️', L('Ethik-Untersuchung', 'Ethics investigation'),
-          L('Ein Ausschuss prüft deine Finanzen. Setze eine Runde aus.', 'A committee is looking into your finances. Miss a turn.')),
-        F('steps', '✍️', L('Obama hilft bei deiner Rede', 'Obama helps with your speech'),
-          L('Barack Obama hilft dir, eine überzeugende Rede für den Nationalen Parteitag zu schreiben. 2 Schritte vor!',
-            'Barack Obama helps you write a convincing speech for the National Convention. 2 steps forward!'),
-          { steps: 2, polls: 5 }),
-        QUIZ(),
-        F('polls', '🎈', L('Ballons und Konfetti', 'Balloons and confetti'),
-          L('Der Parteitag beginnt und die Halle jubelt dir zu.', 'The convention begins and the hall cheers for you.'),
-          { polls: 3 }),
-        F('steps', '📈', L('Hohe Inflation', 'High inflation'),
-          L('Die Preise steigen und die Wähler sind sauer. 2 Schritte zurück.', 'Prices are rising and voters are angry. 2 steps back.'),
-          { steps: -2, polls: -4 }),
         NEWS(),
+        F('polls', '🎈', L('Ballons und Konfetti', 'Balloons and confetti'),
+          L('Deine Anhänger feiern dich schon wie den Sieger.', 'Your supporters already celebrate you like the winner.'),
+          { polls: 3 }),
         F('key', '👑', L('Sieg auf dem Nationalen Parteitag', 'You win the National Convention'),
           L('Die Delegierten haben entschieden: Du bist offiziell Präsidentschaftskandidat! Weiter zu Runde 3.',
             'The delegates have decided: you are officially the presidential nominee! On to round 3.'))
       ]
     },
 
-    /* ===================== RUNDE 3 ===================== */
+    /* ===================== RUNDE 3: Wahlkampf bis Wahltag ===================== */
     {
       id: 3,
       title: L('Wahlkampf', 'Campaign'),
       question: L('Gewinnst du die Wahl und ziehst ins Weiße Haus?', 'Will you win the election and move into the White House?'),
       intro: L(
-        'Der eigentliche Wahlkampf! Erobere Bundesstaaten und ihre Wahlmänner. 270 von 538 Stimmen im Electoral College brauchst du für den Sieg.',
-        'The real campaign! Win states and their electoral votes. You need 270 of the 538 votes in the Electoral College.'
+        'Der eigentliche Wahlkampf! Auf jedem Bundesstaat hältst du eine Kundgebung: Schaffst du die Würfelprobe, gehören dir seine Wahlmänner. 270 von 538 brauchst du für den Sieg.',
+        'The real campaign! On every state you hold a rally: pass the dice check and its electoral votes are yours. You need 270 of 538 to win.'
       ),
       fields: [
         F('start', '🇺🇸', L('Präsidentschaftskandidat', 'Presidential nominee'),
           L('Jetzt beginnt der eigentliche Wahlkampf. Erobere Bundesstaaten und erreiche den Wahltag!',
             'Now the real campaign begins. Win states and make it to Election Day!')),
-        F('steps', '💎', L('Du kommst aus einer reichen Familie', 'You come from a rich family'),
-          L('Papa finanziert den Start deiner Kampagne. 2 Schritte vor!', 'Dad bankrolls your campaign launch. 2 steps forward!'),
-          { steps: 2, money: 10 }),
+        STATE('PA'),
+        F('steps', '🤝', L('Vizepräsident ausgewählt', 'Running mate chosen'),
+          L('Ohne Vizepräsidenten kein Wahlticket: Du stellst deinen „Running Mate“ vor. 2 Schritte vor!',
+            'No running mate, no ticket: you introduce your vice-presidential pick. 2 steps forward!'),
+          { steps: 2, polls: 2 }),
+        NEWS(),
         STATE('NV'),
-        NEWS(),
-        STATE('AZ'),
-        F('steps', '🎖️', L('Du bist Veteran!', 'You are a veteran!'),
-          L('Du hast deinem Land gedient. Das beeindruckt viele Wähler. 5 Schritte vor!', 'You served your country. Many voters are impressed. 5 steps forward!'),
-          { steps: 5, polls: 5 }),
+        F('money', '💼', L('Großspender unterstützen dich', 'Big donors back you'),
+          L('Die großen Spender stehen hinter dir.', 'The big donors are behind you.'),
+          { money: 10 }),
         STATE('WI'),
-        F('steps', '⚖️', L('Du bist Anwalt', 'You are an attorney'),
-          L('Du kennst die Gesetze in- und auswendig. 3 Schritte vor!', 'You know the law inside out. 3 steps forward!'),
-          { steps: 3, polls: 2 }),
+        F('steps', '📈', L('Hohe Inflation', 'High inflation'),
+          L('Die Preise steigen und die Wähler sind sauer. 2 Schritte zurück.', 'Prices are rising and voters are angry. 2 steps back.'),
+          { steps: -2, polls: -4 }),
         QUIZ(),
-        STATE('MI'),
-        F('money', '📞', L('Spenden-Telefonmarathon', 'Fundraising phone-a-thon'),
-          L('Deine Freiwilligen telefonieren die ganze Nacht.', 'Your volunteers work the phones all night.'),
-          { money: 5 }),
-        F('steps', '💼', L('Großspender unterstützen dich', 'Big donors back you'),
-          L('Die großen Spender stehen hinter dir. 3 Schritte vor!', 'The big donors are behind you. 3 steps forward!'),
-          { steps: 3, money: 10 }),
-        STATE('GA'),
-        F('steps', '🚀', L('Elon Musk finanziert deine Kampagne', 'Elon Musk funds your campaign'),
-          L('Elon Musk überweist dir ein paar Millionen. 4 Schritte vor!', 'Elon Musk wires you a few million. 4 steps forward!'),
-          { steps: 4, money: 20 }),
-        STATE('NC'),
-        F('steps', '👶', L('Du hast ein Enkelkind', 'You have a grandchild'),
-          L('Süße Familienfotos gehen um die Welt. 3 Schritte vor!', 'Cute family photos go around the world. 3 steps forward!'),
-          { steps: 3, polls: 3 }),
+        STATE('TX'),
+        F('polls', '👶', L('Du hast ein Enkelkind', 'You have a grandchild'),
+          L('Süße Familienfotos gehen um die Welt.', 'Cute family photos go around the world.'),
+          { polls: 4 }),
+        STATE('AZ'),
         NEWS(),
-        F('steps', '👱', L('Du hast gelbe Haare', 'You have yellow hair'),
-          L('Deine Frisur ist Thema in jeder Talkshow. 1 Schritt zurück.', 'Your hairdo is the talk of every talk show. 1 step back.'),
-          { steps: -1 }),
-        STATE('IL'),
-        QUIZ(),
+        F('money', '🚀', L('Elon Musk finanziert deine Kampagne', 'Elon Musk funds your campaign'),
+          L('Elon Musk überweist dir ein paar Millionen.', 'Elon Musk wires you a few million.'),
+          { money: 20 }),
+        STATE('MI'),
         F('steps', '💣', L('Du willst einen Krieg mit dem Iran beginnen', 'You want to start a war with Iran'),
           L('Die Wähler wollen keinen neuen Krieg. 4 Schritte zurück.', 'Voters don’t want a new war. 4 steps back.'),
           { steps: -4, polls: -8 }),
-        STATE('PA'),
-        NEWS(),
-        F('steps', '😴', L('Dein Gegner ist schläfrig', 'Your opponent is sleepy'),
-          L('Dein Gegner ist schläfrig und kann nicht richtig sprechen. 2 Schritte vor!', 'Your opponent is sleepy and can’t speak properly. 2 steps forward!'),
-          { steps: 2, polls: 3 }),
-        STATE('OH'),
+        STATE('GA'),
+        F('polls', '🎙️', L('Stark in der TV-Debatte', 'Strong in the TV debate'),
+          L('Du hast in der Präsidentschaftsdebatte gezeigt, was du kannst.', 'You showed real skill in the presidential debate.'),
+          { polls: 8 }),
+        F('steps', '📜', L('Auf dem Stimmzettel in allen 50 Staaten', 'On the ballot in all 50 states'),
+          L('Jeder Bundesstaat hat eigene Regeln. Du hast sie alle erfüllt und stehst überall auf dem Stimmzettel. 2 Schritte vor!',
+            'Every state has its own rules. You met them all and are on the ballot everywhere. 2 steps forward!'),
+          { steps: 2 }),
+        STATE('FL'),
         F('polls', '☕', L('Frühstück im Diner', 'Breakfast at a diner'),
           L('Pancakes mit echten Wählern. Die Kameras lieben es.', 'Pancakes with real voters. The cameras love it.'),
           { polls: 3 }),
-        STATE('FL'),
-        F('steps', '🎙️', L('Stark in der TV-Debatte', 'Strong in the TV debate'),
-          L('Du hast in der Präsidentschaftsdebatte gezeigt, was du kannst. 3 Schritte vor!',
-            'You showed real skill in the presidential debate. 3 steps forward!'),
-          { steps: 3, polls: 8 }),
-        NEWS(),
-        STATE('NY'),
+        F('steps', '👱', L('Du hast gelbe Haare', 'You have yellow hair'),
+          L('Deine Frisur ist Thema in jeder Talkshow. 1 Schritt zurück.', 'Your hairdo is the talk of every talk show. 1 step back.'),
+          { steps: -1 }),
+        STATE('NC'),
         QUIZ(),
-        F('steps', '💸', L('Große Zahlung für deine Kampagne', 'Large payment to your campaign'),
-          L('Ein dicker Scheck landet auf deinem Konto. 2 Schritte vor!', 'A fat cheque lands in your account. 2 steps forward!'),
-          { steps: 2, money: 10 }),
+        F('polls', '😴', L('Dein Gegner ist schläfrig', 'Your opponent is sleepy'),
+          L('Dein Gegner ist schläfrig und kann nicht richtig sprechen. Das hilft dir.', 'Your opponent is sleepy and can’t speak properly. That helps you.'),
+          { polls: 5 }),
+        STATE('OH'),
+        F('news', '🎃', L('October Surprise', 'October Surprise'), null),
         F('steps', '✂️', L('Gerrymandering!', 'Gerrymandered!'),
           L('Deine Hochburg wurde per Gerrymandering in Stücke geschnitten. 3 Schritte zurück.',
             'Your stronghold has been gerrymandered to pieces. 3 steps back.'),
           { steps: -3, polls: -5 }),
-        STATE('TX'),
+        STATE('NY'),
+        F('money', '📞', L('Spenden-Telefonmarathon', 'Fundraising phone-a-thon'),
+          L('Deine Freiwilligen telefonieren die ganze Nacht.', 'Your volunteers work the phones all night.'),
+          { money: 5 }),
+        STATE('IL'),
+        NEWS(),
+        F('money', '💸', L('Große Zahlung für deine Kampagne', 'Large payment to your campaign'),
+          L('Ein dicker Scheck landet auf deinem Konto.', 'A fat cheque lands in your account.'),
+          { money: 10 }),
         STATE('CA'),
+        F('polls', '📣', L('Kundgebung mit 50.000 Menschen', 'Rally with 50,000 people'),
+          L('Das Stadion ist voll, die Bilder laufen auf allen Sendern.', 'The stadium is packed and the pictures are on every channel.'),
+          { polls: 4 }),
         F('steps', '📁', L('Du stehst in den Epstein-Akten', 'You are in the Epstein files'),
           L('Dein Name taucht in den Epstein-Akten auf. 10 Schritte zurück!', 'Your name shows up in the Epstein files. 10 steps back!'),
           { steps: -10, polls: -15 }),
@@ -364,6 +388,16 @@ window.PG = window.PG || {};
 
   /* Bundesstaaten, die als Felder auf dem Brett von Runde 3 liegen */
   PG.BOARD_STATES = PG.BOARDS[2].fields.filter(function (f) { return f.type === 'state'; }).map(function (f) { return f.state; });
+
+  /** Würfelprobe für einen Bundesstaat: je mehr Wahlmänner, desto schwerer. Fremde Staaten +1. */
+  PG.stateNeed = function (code, ownedByOther) {
+    const ev = PG.STATES[code].ev;
+    let need = ev <= 8 ? 3 : (ev <= 15 ? 4 : (ev <= 20 ? 5 : 6));
+    if (ownedByOther) need = Math.min(6, need + 1);
+    return need;
+  };
+  /** Preis für einen zweiten Versuch (Werbekampagne) in Mio. $ */
+  PG.stateRetryCost = function (code) { return 2 + Math.ceil(PG.STATES[code].ev / 10); };
 
   /* -----------------------------------------------------------------------
      QUIZFRAGEN  (c = Index der richtigen Antwort, x = Erklärung)
@@ -505,7 +539,7 @@ window.PG = window.PG || {};
 
   /* -----------------------------------------------------------------------
      BREAKING NEWS – Ereigniskarten
-     Wirkungen: steps, polls, money, skip, again, allPolls, leaderSteps, collect
+     Wirkungen: steps (nur zurück), polls, money, skip, allPolls, leaderSteps, collect
      ----------------------------------------------------------------------- */
   PG.NEWS = [
     { icon: '📱', title: L('Dein TikTok-Video geht viral', 'Your TikTok goes viral'),
@@ -523,7 +557,7 @@ window.PG = window.PG || {};
     { icon: '📺', title: L('Spott in der Late-Night-Show', 'Mocked on late-night TV'),
       text: L('Ein Comedian imitiert dich und ganz Amerika lacht.', 'A comedian impersonates you and all of America laughs.'), polls: -3 },
     { icon: '⭐', title: L('Hollywood-Star unterstützt dich', 'Hollywood star endorses you'),
-      text: L('Ein Superstar trägt dein Wahlkampf-T-Shirt.', 'A superstar wears your campaign T-shirt.'), polls: 5, steps: 1 },
+      text: L('Ein Superstar trägt dein Wahlkampf-T-Shirt.', 'A superstar wears your campaign T-shirt.'), polls: 5 },
     { icon: '🌀', title: L('Helfer nach dem Hurrikan', 'Hurricane helper'),
       text: L('Du packst nach dem Hurrikan selbst beim Aufräumen mit an.', 'You personally help clean up after the hurricane.'), polls: 4 },
     { icon: '📉', title: L('Börsencrash!', 'Stock market crash!'),
@@ -535,9 +569,9 @@ window.PG = window.PG || {};
     { icon: '🚌', title: L('Panne mit dem Wahlkampfbus', 'Campaign bus breaks down'),
       text: L('Mitten im Nirgendwo in Nebraska. 2 Felder zurück.', 'In the middle of nowhere in Nebraska. 2 spaces back.'), steps: -2 },
     { icon: '✈️', title: L('Privatjet geliehen', 'Borrowed a private jet'),
-      text: L('Ein Unterstützer leiht dir seinen Jet. 2 Felder vor.', 'A supporter lends you his jet. 2 spaces forward.'), steps: 2 },
+      text: L('Ein Unterstützer leiht dir seinen Jet. Drei Kundgebungen an einem Tag!', 'A supporter lends you his jet. Three rallies in one day!'), polls: 3 },
     { icon: '🎲', title: L('Momentum!', 'Momentum!'),
-      text: L('Die Stimmung kippt zu deinen Gunsten. Würfle nochmal!', 'The mood swings your way. Roll again!'), again: true },
+      text: L('Die Stimmung kippt zu deinen Gunsten.', 'The mood swings your way.'), polls: 5 },
     { icon: '🧢', title: L('Merch ausverkauft', 'Merch sold out'),
       text: L('Deine Kappen sind überall ausverkauft.', 'Your caps are sold out everywhere.'), money: 4 },
     { icon: '🗑️', title: L('Schmutzkampagne', 'Smear campaign'),
@@ -557,6 +591,6 @@ window.PG = window.PG || {};
     { icon: '🎻', title: L('Dinner mit Großspendern', 'Dinner with big donors'),
       text: L('Ein Abendessen für 50.000 $ pro Teller.', 'A dinner at 50,000 $ a plate.'), money: 6 },
     { icon: '📋', title: L('Wählerregistrierung boomt', 'Voter registration boom'),
-      text: L('Deine Freiwilligen registrieren Tausende neue Wähler. 1 Feld vor.', 'Your volunteers register thousands of new voters. 1 space forward.'), polls: 3, steps: 1 }
+      text: L('Deine Freiwilligen registrieren Tausende neue Wähler.', 'Your volunteers register thousands of new voters.'), polls: 4 }
   ];
 })(window.PG);
