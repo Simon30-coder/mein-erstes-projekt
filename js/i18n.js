@@ -1,0 +1,524 @@
+/* =========================================================================
+   SPRACHE – alle Texte der Oberfläche auf Deutsch und Englisch
+   ========================================================================= */
+window.PG = window.PG || {};
+
+(function (PG) {
+  'use strict';
+
+  const STR = {
+    de: {
+      appName: 'Der Weg ins Weiße Haus',
+      appShort: 'Weg ins Weiße Haus',
+      tagline: 'Ein Brettspiel in drei Runden. Von der Geburtsurkunde bis zur Amtseinführung.',
+      langLabel: 'Sprache',
+      round: 'Runde',
+      roundN: 'Runde {n}',
+      roundRoman: ['I', 'II', 'III'],
+
+      /* Startbildschirm */
+      roundsTitle: 'Drei Runden bis ins Oval Office',
+      r1Fact: 'Geboren in den USA, mindestens 35 Jahre alt, 14 Jahre Wohnsitz.',
+      r2Fact: 'Vorwahlen, Super Tuesday und der Nationale Parteitag.',
+      r3Fact: 'Swing States, TV-Debatten und 270 von 538 Wahlmännern.',
+      setupTitle: 'Neues Spiel',
+      humans: 'Menschen',
+      humansHint: 'spielen abwechselnd an diesem Gerät',
+      bots: 'KI-Gegner',
+      botsHint: 'füllen freie Plätze auf (0 = nur Menschen)',
+      seats: '{n} von 15 Plätzen belegt',
+      playersHeading: 'Spieler',
+      namePh: 'Name',
+      homeState: 'Heimatstaat',
+      human: 'Mensch',
+      ai: 'KI',
+      changeColor: 'Farbe ändern',
+      rulesExtras: 'Regeln & Extras',
+      finaleTitle: 'Spielende',
+      finaleNight: 'Gemeinsamer Wahlabend',
+      finaleNightDesc: 'Erreicht jemand den Wahltag, wählt ganz Amerika. Alle Kandidaten aus Runde 3 treten gegeneinander an, und wer die meisten Wahlmänner holt, gewinnt. Wer zuerst ankommt, bekommt einen Bonus.',
+      finaleHurdle: '270-Hürde',
+      finaleHurdleDesc: 'Wer den Wahltag erreicht, bekommt eine Hochrechnung. Sind es mindestens 270 Wahlmänner, ist das Spiel gewonnen. Sonst geht es 10 Felder zurück in den Wahlkampf.',
+      finaleRace: 'Einfaches Rennen',
+      finaleRaceDesc: 'Wer zuerst genau auf dem Wahltag landet, wird Präsident. Bundesstaaten zählen nicht.',
+      recommended: 'Empfohlen',
+      extrasTitle: 'Extras',
+      optQuiz: 'Wissens-Quiz',
+      optQuizDesc: 'Quizfelder mit Fragen zu Wahlen und Präsidenten. Richtig = 2 Felder vor.',
+      optNews: 'Breaking-News-Karten',
+      optNewsDesc: 'Zufällige Ereignisse: Skandale, Spenden, virale Videos.',
+      optRes: 'Spenden & Umfragen',
+      optResDesc: 'Sammle Geld und Umfragewerte. Geld kauft Berater und Werbung, Umfragen entscheiden am Wahlabend mit.',
+      botSpeed: 'Tempo der KI',
+      speedSlow: 'Gemütlich',
+      speedNormal: 'Normal',
+      speedFast: 'Schnell',
+      followCam: 'Brett wechselt automatisch zur Runde des Spielers am Zug',
+      sound: 'Sound',
+      startGame: 'Spiel starten',
+      continueGame: 'Gespeichertes Spiel fortsetzen',
+      savedInfo: 'Zug {turn} · {n} Spieler',
+      or: 'oder',
+
+      /* Spiel */
+      nowPlaying: 'Am Zug',
+      roll: 'Würfeln',
+      advisor: 'Berater ({c})',
+      advisorTitle: 'Wahlkampfberater',
+      advisorHint: 'Zwei Würfel werfen und den besseren wählen.',
+      advisorPick: 'Welchen Wurf nimmst du?',
+      advisorTo: 'führt zu',
+      advisorTooFar: 'zu weit',
+      botThinking: '{name} ist dran …',
+      rollPrompt: 'Würfle, {name}!',
+      gateHint: 'Sperre: Du brauchst eine gerade Zahl.',
+      exactHint: 'Bis zum Ziel genau {n}.',
+      skipHint: '{name} setzt aus.',
+      playersTitle: 'Kandidaten',
+      logTitle: 'Verlauf',
+      live: 'Live',
+      money: 'Spenden',
+      polls: 'Umfragen',
+      ev: 'Wahlmänner',
+      evShort: 'WM',
+      posShort: 'Feld {f}',
+      skipping: 'setzt aus',
+      qualifiedTag: 'qualifiziert',
+      watching: 'Ansicht',
+      playersInRound: '{n} Spieler',
+
+      /* Karten */
+      ok: 'Weiter',
+      evGood: 'Glück gehabt',
+      evBad: 'Pech gehabt',
+      evInfo: 'Ereignis',
+      evNews: 'Breaking News',
+      evQuiz: 'Quizfrage',
+      evState: 'Bundesstaat',
+      evKey: 'Geschafft!',
+      evGate: 'Sperre',
+      evDuel: 'TV-Duell',
+      evAgain: 'Nochmal!',
+      chipFwd1: '1 Feld vor',
+      chipFwd: '{n} Felder vor',
+      chipBack1: '1 Feld zurück',
+      chipBack: '{n} Felder zurück',
+      chipMoney: '{v} Spenden',
+      chipPolls: '{v} Umfragen',
+      chipAgain: 'Nochmal würfeln',
+      chipSkip: 'Eine Runde aussetzen',
+      chipAllPolls: 'Alle: {v} Umfragen',
+      chipCollect: '{v} von jedem Mitspieler',
+      chipLeader: 'Spitzenreiter: 2 Felder zurück',
+      gateArrive: 'Du stehst an der Sperre. Ab deinem nächsten Zug brauchst du eine gerade Zahl, um weiterzuziehen.',
+      gateOkTitle: 'Qualifiziert!',
+      gateOkText: 'Eine {r}! 14 Jahre Wohnsitz bestätigt. Du ziehst {r} Felder weiter.',
+      gateFailTitle: 'Noch nicht qualifiziert',
+      gateFailText: 'Eine {r} ist ungerade. Du bleibst an der Sperre stehen.',
+      gateStop: 'Die Sperre stoppt dich auf Feld {f}.',
+      overTitle: 'Zu weit!',
+      overText: 'Du hast eine {r} gewürfelt, brauchst aber genau {need}, um auf dem Zielfeld zu landen. Du bleibst stehen.',
+      overEffect: 'Das würde über das Zielfeld hinausgehen. Du bleibst stehen.',
+      skipTitle: 'Aussetzen',
+      skipText: '{name} setzt diese Runde aus.',
+      quizFor: 'Frage an {name}',
+      quizCorrect: 'Richtig!',
+      quizWrong: 'Leider falsch.',
+      quizAnswer: 'Richtige Antwort: {a}',
+      quizReward: 'Belohnung: 2 Felder vor.',
+      quizRewardPolls: 'Belohnung: +3 % Umfragen.',
+      quizNoReward: 'Keine Belohnung.',
+      duelText: '{a} gegen {b}. Wer würfelt höher?',
+      duelRoll: 'Würfeln!',
+      duelWin: '{name} gewinnt das Duell!',
+      duelTie: 'Unentschieden. Nichts passiert.',
+      npcName: 'Gegenkandidat',
+      npcLong: 'Kandidat der Gegenpartei',
+      stateClaimTitle: '{state} erobert!',
+      stateClaim: '{name} macht Wahlkampf in {state} und sichert sich {ev} Wahlmänner.',
+      stateOwn: '{state} gehört schon {name}. Heimspiel: +2 % Umfragen.',
+      stateTakeTitle: '{state} übernommen!',
+      stateTake: '{name} hat bessere Umfragewerte als {owner} und übernimmt {state}.',
+      stateHeld: '{state} gehört {owner}, der Staat hat {ev} Wahlmänner. Mit einer Werbekampagne für {cost} kannst du ihn übernehmen.',
+      stateBuy: 'Werbung kaufen ({cost})',
+      statePass: 'Verzichten',
+      stateBought: '{name} kauft Werbung für {cost} und übernimmt {state}.',
+      statePassed: '{name} verzichtet. {state} bleibt bei {owner}.',
+      stateNoMoney: '{state} gehört {owner}, und {owner} hat bessere Umfragewerte. Für eine Werbekampagne ({cost}) fehlt das Geld.',
+      stateDuel: '{state} gehört {owner}. Würfelduell: Wer höher würfelt, bekommt den Staat.',
+      stateDuelWin: '{name} gewinnt das Duell und übernimmt {state}.',
+      stateDuelLose: '{state} bleibt bei {owner}.',
+      stateRace: 'Kundgebung in {state}! Die Menge jubelt. Im Modus „Einfaches Rennen“ zählen Staaten nicht.',
+      roundDoneTitle: 'Runde {n} geschafft!',
+      nextRound: 'Weiter zu Runde {n}',
+
+      /* Finale */
+      electionDayTitle: 'Wahltag!',
+      firstArrival: '{name} erreicht als Erster den Wahltag und bekommt +5 % Momentum.',
+      electionAll: 'Jetzt wählt ganz Amerika. Auf dem Stimmzettel: {list}.',
+      electionSolo: 'Kein Mitspieler hat es bis in Runde 3 geschafft. {name} tritt gegen den Kandidaten der Gegenpartei an.',
+      toElectionNight: 'Zum Wahlabend',
+      nightTitle: 'Wahlabend',
+      nightEyebrow: 'Election Night',
+      nightIntro: 'Die ersten Wahllokale schließen um 19 Uhr an der Ostküste …',
+      clock: '{t} Uhr ET',
+      skip: 'Überspringen',
+      projection: 'Projektion: {name} gewinnt {state} ({ev})',
+      crosses: '{name} knackt die 270!',
+      houseTitle: 'Niemand hat 270 Stimmen!',
+      houseText: 'Jetzt entscheidet das Repräsentantenhaus. Jede Staaten-Delegation hat eine Stimme (Washington, D.C. stimmt nicht mit).',
+      houseCol: 'Staaten',
+      winnerLine: '{name} gewinnt die Präsidentschaftswahl!',
+      npcWinnerLine: 'Der Kandidat der Gegenpartei gewinnt die Wahl.',
+      toInauguration: 'Zur Amtseinführung',
+      toResult: 'Zum Ergebnis',
+      campaignedHint: '★ = im Wahlkampf erobert',
+      hurdleTitle: 'Hochrechnung für {name}',
+      hurdleClaimed: 'Eroberte Staaten: {ev} Wahlmänner.',
+      hurdlePolls: 'Mit {p} Umfragewerten kommen {ev} Wahlmänner aus den übrigen Staaten dazu.',
+      hurdleOk: '{ev} Wahlmänner. Die 270 ist geschafft!',
+      hurdleFail: 'Nur {ev} Wahlmänner. Das reicht nicht! 10 Felder zurück, dafür +5 % Umfragen.',
+      hurdleBack: 'Zurück in den Wahlkampf',
+      others: 'Andere',
+
+      /* Sieg */
+      victoryEyebrow: 'Amtseinführung · 20. Januar',
+      victoryTitle: '{name} wird der 48. Präsident der Vereinigten Staaten!',
+      victoryOath: '„Ich schwöre feierlich, dass ich das Amt des Präsidenten der Vereinigten Staaten getreu ausführen werde …“',
+      defeatEyebrow: 'Wahlnacht vorbei',
+      defeatTitle: 'Die Gegenpartei zieht ins Weiße Haus',
+      defeatText: 'Knapp daneben! Diesmal hat der Kandidat der anderen Partei gewonnen.',
+      standings: 'Endstand',
+      rematch: 'Revanche',
+      newGame: 'Neues Spiel',
+      statRolls: '{n} Würfe',
+      reached: 'Runde {r}, Feld {f}',
+      winnerTag: 'Präsident',
+
+      /* Menüs */
+      menuTitle: 'Spielmenü',
+      menuText: 'Das Spiel wird nach jedem Zug automatisch gespeichert. Im Hauptmenü kannst du es später fortsetzen.',
+      toMainMenu: 'Zum Hauptmenü',
+      cancel: 'Abbrechen',
+      settingsTitle: 'Einstellungen',
+      settingsLive: 'Änderungen gelten sofort, auch im laufenden Spiel.',
+      close: 'Schließen',
+      rulesTitle: 'Spielregeln',
+      btnRules: 'Regeln',
+      btnSettings: 'Einstellungen',
+      btnMenu: 'Menü',
+      btnSoundOn: 'Sound an',
+      btnSoundOff: 'Sound aus',
+      rulesHtml:
+        '<h3>Ziel</h3><p>Werde Präsident der Vereinigten Staaten! Dafür musst du drei Runden schaffen: <b>Qualifikation</b>, <b>Nominierung</b> und <b>Wahlkampf</b>.</p>' +
+        '<h3>Ablauf</h3><ul><li>Wer dran ist, würfelt und zieht so viele Felder vor.</li><li>Das Feld, auf dem du landest, hat eine Wirkung: vor, zurück, Spenden, Umfragen, Quiz oder News.</li><li>Ziehst du durch ein Ereignis auf ein anderes Feld, wirkt dort nur ein Bundesstaat, eine Sperre oder ein Schlüsselfeld. Ketten gibt es nicht.</li></ul>' +
+        '<h3>Besondere Felder</h3><ul><li><b>Sperre (gelb, Runde 1):</b> Hier muss jeder anhalten. Weiter geht es erst mit einer geraden Zahl.</li><li><b>Schlüsselfeld (gold):</b> Das letzte Feld jeder Runde. Du musst <b>genau</b> darauf landen, sonst bleibst du stehen.</li><li><b>Bundesstaaten (Runde 3):</b> Landest du auf einem freien Staat, gehört er dir. Gehört er schon jemand anderem, übernimmst du ihn mit besseren Umfragewerten oder einer Werbekampagne.</li></ul>' +
+        '<h3>Spenden & Umfragen</h3><p>Mit Spenden kannst du vor dem Würfeln einen <b>Berater</b> bezahlen: Dann wirfst du zwei Würfel und wählst den besseren. Umfragewerte entscheiden am Wahlabend über alle Staaten, die niemand erobert hat.</p>' +
+        '<h3>Wahlabend</h3><p>Wer 270 der 538 Wahlmänner bekommt, gewinnt. Schafft das niemand, entscheidet wie im echten Leben das Repräsentantenhaus: Jeder Bundesstaat hat dort eine Stimme.</p>',
+
+      /* Verlauf */
+      logStart: 'Das Rennen um das Weiße Haus beginnt!',
+      logRoll: '{name} würfelt eine {r}.',
+      logAdvisor: '{name} bezahlt einen Berater und wirft {a} und {b}.',
+      logLand: '{name} landet auf „{title}“.',
+      logRound: '{name} erreicht Runde {n}!',
+      logGateOk: '{name} ist qualifiziert (14 Jahre Wohnsitz).',
+      logGateFail: '{name} hängt an der Sperre fest.',
+      logOver: '{name} würfelt zu hoch und bleibt stehen.',
+      logState: '{name} erobert {state} ({ev} WM).',
+      logQuizOk: '{name} beantwortet die Quizfrage richtig.',
+      logQuizBad: '{name} liegt beim Quiz daneben.',
+      logNews: 'Breaking News für {name}: {title}',
+      logSkip: '{name} setzt aus.',
+      logDuel: 'TV-Duell: {a} ({ra}) gegen {b} ({rb}).',
+      logWin: '{name} gewinnt die Wahl!',
+      logHurdleFail: '{name} verfehlt die 270 und muss zurück in den Wahlkampf.',
+      logNpcWin: 'Die Gegenpartei gewinnt die Wahl.'
+    },
+
+    en: {
+      appName: 'Road to the White House',
+      appShort: 'Road to the White House',
+      tagline: 'A board game in three rounds. From birth certificate to Inauguration Day.',
+      langLabel: 'Language',
+      round: 'Round',
+      roundN: 'Round {n}',
+      roundRoman: ['I', 'II', 'III'],
+
+      roundsTitle: 'Three rounds to the Oval Office',
+      r1Fact: 'Natural-born citizen, at least 35 years old, 14 years of residence.',
+      r2Fact: 'Primaries, Super Tuesday and the National Convention.',
+      r3Fact: 'Swing states, TV debates and 270 of 538 electoral votes.',
+      setupTitle: 'New game',
+      humans: 'Humans',
+      humansHint: 'take turns on this device',
+      bots: 'AI opponents',
+      botsHint: 'fill the empty seats (0 = humans only)',
+      seats: '{n} of 15 seats taken',
+      playersHeading: 'Players',
+      namePh: 'Name',
+      homeState: 'Home state',
+      human: 'Human',
+      ai: 'AI',
+      changeColor: 'Change colour',
+      rulesExtras: 'Rules & extras',
+      finaleTitle: 'Ending',
+      finaleNight: 'Shared election night',
+      finaleNightDesc: 'When someone reaches Election Day, all of America votes. Every round-3 candidate runs, and whoever wins the most electoral votes wins. The first to arrive gets a bonus.',
+      finaleHurdle: '270 hurdle',
+      finaleHurdleDesc: 'Whoever reaches Election Day gets a projection. With at least 270 electoral votes you win. Otherwise it’s 10 spaces back onto the campaign trail.',
+      finaleRace: 'Simple race',
+      finaleRaceDesc: 'The first to land exactly on Election Day becomes President. States don’t count.',
+      recommended: 'Recommended',
+      extrasTitle: 'Extras',
+      optQuiz: 'Knowledge quiz',
+      optQuizDesc: 'Quiz spaces about elections and presidents. Correct = 2 spaces forward.',
+      optNews: 'Breaking news cards',
+      optNewsDesc: 'Random events: scandals, donations, viral videos.',
+      optRes: 'Funds & polls',
+      optResDesc: 'Collect money and poll points. Money buys advisors and ads, polls help decide election night.',
+      botSpeed: 'AI speed',
+      speedSlow: 'Relaxed',
+      speedNormal: 'Normal',
+      speedFast: 'Fast',
+      followCam: 'Board switches to the active player’s round',
+      sound: 'Sound',
+      startGame: 'Start game',
+      continueGame: 'Continue saved game',
+      savedInfo: 'Turn {turn} · {n} players',
+      or: 'or',
+
+      nowPlaying: 'Now playing',
+      roll: 'Roll',
+      advisor: 'Advisor ({c})',
+      advisorTitle: 'Campaign advisor',
+      advisorHint: 'Roll two dice and pick the better one.',
+      advisorPick: 'Which roll do you take?',
+      advisorTo: 'leads to',
+      advisorTooFar: 'too far',
+      botThinking: '{name}’s turn …',
+      rollPrompt: 'Roll the die, {name}!',
+      gateHint: 'Barrier: you need an even number.',
+      exactHint: 'Exactly {n} to the goal.',
+      skipHint: '{name} misses this turn.',
+      playersTitle: 'Candidates',
+      logTitle: 'History',
+      live: 'Live',
+      money: 'Funds',
+      polls: 'Polls',
+      ev: 'Electoral votes',
+      evShort: 'EV',
+      posShort: 'Space {f}',
+      skipping: 'misses a turn',
+      qualifiedTag: 'qualified',
+      watching: 'Viewing',
+      playersInRound: '{n} players',
+
+      ok: 'Continue',
+      evGood: 'Good news',
+      evBad: 'Bad luck',
+      evInfo: 'Event',
+      evNews: 'Breaking News',
+      evQuiz: 'Quiz',
+      evState: 'State',
+      evKey: 'You made it!',
+      evGate: 'Barrier',
+      evDuel: 'TV duel',
+      evAgain: 'Again!',
+      chipFwd1: '1 space forward',
+      chipFwd: '{n} spaces forward',
+      chipBack1: '1 space back',
+      chipBack: '{n} spaces back',
+      chipMoney: '{v} funds',
+      chipPolls: '{v} polls',
+      chipAgain: 'Roll again',
+      chipSkip: 'Miss a turn',
+      chipAllPolls: 'Everyone: {v} polls',
+      chipCollect: '{v} from each player',
+      chipLeader: 'Front-runner: 2 spaces back',
+      gateArrive: 'You are at the barrier. From your next turn on you need an even number to move on.',
+      gateOkTitle: 'Qualified!',
+      gateOkText: 'A {r}! 14 years of residence confirmed. You move {r} spaces on.',
+      gateFailTitle: 'Not qualified yet',
+      gateFailText: 'A {r} is odd. You stay at the barrier.',
+      gateStop: 'The barrier stops you on space {f}.',
+      overTitle: 'Too far!',
+      overText: 'You rolled a {r} but need exactly {need} to land on the goal. You stay where you are.',
+      overEffect: 'That would overshoot the goal. You stay where you are.',
+      skipTitle: 'Missed turn',
+      skipText: '{name} misses this turn.',
+      quizFor: 'Question for {name}',
+      quizCorrect: 'Correct!',
+      quizWrong: 'Wrong.',
+      quizAnswer: 'Correct answer: {a}',
+      quizReward: 'Reward: 2 spaces forward.',
+      quizRewardPolls: 'Reward: +3% polls.',
+      quizNoReward: 'No reward.',
+      duelText: '{a} versus {b}. Who rolls higher?',
+      duelRoll: 'Roll!',
+      duelWin: '{name} wins the duel!',
+      duelTie: 'A tie. Nothing happens.',
+      npcName: 'Opponent',
+      npcLong: 'Opposing party’s nominee',
+      stateClaimTitle: '{state} won!',
+      stateClaim: '{name} campaigns in {state} and secures {ev} electoral votes.',
+      stateOwn: '{state} already belongs to {name}. Home game: +2% polls.',
+      stateTakeTitle: '{state} flipped!',
+      stateTake: '{name} polls better than {owner} and flips {state}.',
+      stateHeld: '{state} belongs to {owner} and has {ev} electoral votes. An ad campaign for {cost} flips it to you.',
+      stateBuy: 'Buy ads ({cost})',
+      statePass: 'Pass',
+      stateBought: '{name} buys ads for {cost} and flips {state}.',
+      statePassed: '{name} passes. {state} stays with {owner}.',
+      stateNoMoney: '{state} belongs to {owner}, who polls better. There isn’t enough money for an ad campaign ({cost}).',
+      stateDuel: '{state} belongs to {owner}. Dice duel: the higher roll gets the state.',
+      stateDuelWin: '{name} wins the duel and flips {state}.',
+      stateDuelLose: '{state} stays with {owner}.',
+      stateRace: 'Rally in {state}! The crowd goes wild. In “Simple race” mode states don’t count.',
+      roundDoneTitle: 'Round {n} complete!',
+      nextRound: 'On to round {n}',
+
+      electionDayTitle: 'Election Day!',
+      firstArrival: '{name} is the first to reach Election Day and gets +5% momentum.',
+      electionAll: 'Now all of America votes. On the ballot: {list}.',
+      electionSolo: 'No other player made it to round 3. {name} faces the opposing party’s nominee.',
+      toElectionNight: 'To election night',
+      nightTitle: 'Election Night',
+      nightEyebrow: 'Live coverage',
+      nightIntro: 'The first polls close at 7 p.m. on the East Coast …',
+      clock: '{t} ET',
+      skip: 'Skip',
+      projection: 'Projection: {name} wins {state} ({ev})',
+      crosses: '{name} passes 270!',
+      houseTitle: 'Nobody has 270 votes!',
+      houseText: 'Now the House of Representatives decides. Each state delegation casts one vote (Washington, D.C. does not vote).',
+      houseCol: 'States',
+      winnerLine: '{name} wins the presidential election!',
+      npcWinnerLine: 'The opposing party’s nominee wins the election.',
+      toInauguration: 'To the inauguration',
+      toResult: 'See the result',
+      campaignedHint: '★ = won on the campaign trail',
+      hurdleTitle: 'Projection for {name}',
+      hurdleClaimed: 'States won on the trail: {ev} electoral votes.',
+      hurdlePolls: 'With {p} in the polls, {ev} electoral votes come from the remaining states.',
+      hurdleOk: '{ev} electoral votes. 270 reached!',
+      hurdleFail: 'Only {ev} electoral votes. Not enough! 10 spaces back, but +5% polls.',
+      hurdleBack: 'Back to the campaign',
+      others: 'Others',
+
+      victoryEyebrow: 'Inauguration Day · January 20',
+      victoryTitle: '{name} becomes the 48th President of the United States!',
+      victoryOath: '“I do solemnly swear that I will faithfully execute the Office of President of the United States …”',
+      defeatEyebrow: 'Election night is over',
+      defeatTitle: 'The opposing party moves into the White House',
+      defeatText: 'So close! This time the other party’s nominee won.',
+      standings: 'Final standings',
+      rematch: 'Rematch',
+      newGame: 'New game',
+      statRolls: '{n} rolls',
+      reached: 'Round {r}, space {f}',
+      winnerTag: 'President',
+
+      menuTitle: 'Game menu',
+      menuText: 'The game saves automatically after every turn. You can continue it later from the main menu.',
+      toMainMenu: 'Main menu',
+      cancel: 'Cancel',
+      settingsTitle: 'Settings',
+      settingsLive: 'Changes apply right away, even mid-game.',
+      close: 'Close',
+      rulesTitle: 'How to play',
+      btnRules: 'Rules',
+      btnSettings: 'Settings',
+      btnMenu: 'Menu',
+      btnSoundOn: 'Sound on',
+      btnSoundOff: 'Sound off',
+      rulesHtml:
+        '<h3>Goal</h3><p>Become President of the United States! To get there you must clear three rounds: <b>Qualification</b>, <b>Nomination</b> and <b>Campaign</b>.</p>' +
+        '<h3>Turns</h3><ul><li>On your turn, roll the die and move that many spaces.</li><li>The space you land on does something: forward, back, funds, polls, quiz or news.</li><li>If an event moves you to another space, only a state, the barrier or a key space takes effect there. Effects don’t chain.</li></ul>' +
+        '<h3>Special spaces</h3><ul><li><b>Barrier (yellow, round 1):</b> everyone has to stop here. You only move on with an even number.</li><li><b>Key space (gold):</b> the last space of each round. You must land on it <b>exactly</b>, otherwise you stay put.</li><li><b>States (round 3):</b> land on a free state and it’s yours. If someone else owns it, you flip it with better polls or an ad campaign.</li></ul>' +
+        '<h3>Funds & polls</h3><p>Before rolling you can pay an <b>advisor</b>: you roll two dice and pick the better one. Polls decide every state nobody won on the campaign trail.</p>' +
+        '<h3>Election night</h3><p>Whoever gets 270 of the 538 electoral votes wins. If nobody does, the House of Representatives decides, just like in real life: each state gets one vote.</p>',
+
+      logStart: 'The race for the White House begins!',
+      logRoll: '{name} rolls a {r}.',
+      logAdvisor: '{name} pays an advisor and rolls {a} and {b}.',
+      logLand: '{name} lands on “{title}”.',
+      logRound: '{name} reaches round {n}!',
+      logGateOk: '{name} is qualified (14 years of residence).',
+      logGateFail: '{name} is stuck at the barrier.',
+      logOver: '{name} rolls too high and stays put.',
+      logState: '{name} wins {state} ({ev} EV).',
+      logQuizOk: '{name} answers the quiz correctly.',
+      logQuizBad: '{name} gets the quiz wrong.',
+      logNews: 'Breaking news for {name}: {title}',
+      logSkip: '{name} misses a turn.',
+      logDuel: 'TV duel: {a} ({ra}) vs. {b} ({rb}).',
+      logWin: '{name} wins the election!',
+      logHurdleFail: '{name} misses 270 and heads back onto the campaign trail.',
+      logNpcWin: 'The opposing party wins the election.'
+    }
+  };
+
+  let lang = 'de';
+  try {
+    const saved = localStorage.getItem('pg-lang');
+    if (saved === 'de' || saved === 'en') lang = saved;
+    else if ((navigator.language || '').slice(0, 2) === 'en') lang = 'en';
+  } catch (e) { /* Speicher nicht verfügbar */ }
+
+  PG.I18N = {
+    get lang() { return lang; },
+    setLang: function (l) {
+      lang = (l === 'en') ? 'en' : 'de';
+      try { localStorage.setItem('pg-lang', lang); } catch (e) { /* egal */ }
+      document.documentElement.lang = lang;
+    },
+    has: function (key) { return Object.prototype.hasOwnProperty.call(STR.de, key); },
+    keys: function () { return Object.keys(STR.de); },
+    raw: STR
+  };
+
+  /** Übersetzt einen Schlüssel und setzt {platzhalter} ein. */
+  PG.t = function (key, params) {
+    let s = (STR[lang] && STR[lang][key] !== undefined) ? STR[lang][key] : STR.de[key];
+    if (s === undefined) return key;
+    if (typeof s !== 'string') return s;
+    if (params) {
+      s = s.replace(/\{(\w+)\}/g, function (m, k) { return params[k] !== undefined ? params[k] : m; });
+    }
+    return s;
+  };
+
+  /** Liest einen zweisprachigen Text {de, en}. */
+  PG.tx = function (obj, params) {
+    if (obj === null || obj === undefined) return '';
+    let s = typeof obj === 'string' ? obj : (obj[lang] || obj.de || '');
+    if (params) s = s.replace(/\{(\w+)\}/g, function (m, k) { return params[k] !== undefined ? params[k] : m; });
+    return s;
+  };
+
+  /** Zahlen- und Einheitenformat */
+  PG.fmt = {
+    money: function (v, signed) {
+      const sign = signed ? (v > 0 ? '+' : (v < 0 ? '−' : '')) : (v < 0 ? '−' : '');
+      const a = Math.abs(v);
+      return lang === 'de' ? sign + a + ' Mio. $' : sign + '$' + a + 'M';
+    },
+    polls: function (v, signed) {
+      const sign = signed ? (v > 0 ? '+' : (v < 0 ? '−' : '')) : (v < 0 ? '−' : '');
+      return lang === 'de' ? sign + Math.abs(v) + ' %' : sign + Math.abs(v) + '%';
+    },
+    steps: function (n) {
+      if (n > 0) return PG.t(n === 1 ? 'chipFwd1' : 'chipFwd', { n: n });
+      return PG.t(n === -1 ? 'chipBack1' : 'chipBack', { n: -n });
+    },
+    clock: function (hhmm) {
+      if (lang === 'de') return PG.t('clock', { t: hhmm });
+      const parts = hhmm.split(':');
+      let h = parseInt(parts[0], 10);
+      const suffix = (h >= 12 && h < 24) ? 'p.m.' : 'a.m.';
+      h = h % 12; if (h === 0) h = 12;
+      return PG.t('clock', { t: h + (parts[1] !== '00' ? ':' + parts[1] : '') + ' ' + suffix });
+    }
+  };
+})(window.PG);

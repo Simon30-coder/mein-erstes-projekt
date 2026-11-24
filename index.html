@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Road to the White House</title>
+  <meta name="description" content="Digitales Brettspiel: Werde in drei Runden Präsident der USA. Für 1 bis 15 Spieler, mit KI-Gegnern, Quiz, Breaking News und Wahlabend.">
+  <meta name="theme-color" content="#0A1328">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Libre+Caslon+Display&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button type="button" class="brand" id="brandHome">
+          <span class="brand-star" aria-hidden="true">★</span>
+          <span class="brand-name" id="brandName">Der Weg ins Weiße Haus</span>
+        </button>
+        <div class="top-actions">
+          <div class="lang" id="langSwitch" role="group"></div>
+          <button type="button" class="icon-btn" id="btnSound"></button>
+          <button type="button" class="icon-btn" id="btnRules"></button>
+          <button type="button" class="icon-btn" id="btnSettings" hidden></button>
+          <button type="button" class="icon-btn" id="btnMenu" hidden></button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Startbildschirm -->
+    <main id="screenStart" class="screen-start"></main>
+
+    <!-- Spielansicht -->
+    <main id="screenGame" class="screen-game" hidden>
+      <section class="board-area" aria-label="Spielbrett">
+        <nav class="round-tabs" id="roundTabs" role="tablist"></nav>
+        <div class="round-head" id="roundHead"></div>
+        <div class="board-frame">
+          <div class="board" id="board"></div>
+        </div>
+      </section>
+      <aside class="side">
+        <div class="turn-panel" id="turnPanel"></div>
+        <div class="panel">
+          <h3 class="panel-title" id="playersTitle"></h3>
+          <ol class="players" id="playersList"></ol>
+        </div>
+        <div class="panel">
+          <h3 class="panel-title" id="logTitle"></h3>
+          <ol class="log" id="logList"></ol>
+        </div>
+      </aside>
+    </main>
+
+    <div class="ticker" id="ticker" hidden></div>
+  </div>
+
+  <div id="overlayRoot"></div>
+  <div id="toastRoot" class="toast-root" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/election.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
