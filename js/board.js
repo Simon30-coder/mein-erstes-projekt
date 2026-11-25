@@ -1,5 +1,5 @@
 /* =========================================================================
-   SPIELBRETT – zeichnet die Felder als Schlangenpfad und bewegt die Figuren
+   SPIELBRETT – Felder im Raster (7 Spalten), Wege, Figuren, Zielauswahl
    ========================================================================= */
 window.PG = window.PG || {};
 
@@ -7,45 +7,28 @@ window.PG = window.PG || {};
   'use strict';
 
   const t = PG.t, tx = PG.tx, esc = PG.esc;
-  const GAP = 10;
+  const GAP = 8;
 
   let boardEl = null;
   let view = 1;
-  let cols = 0;
-  let tileEls = [];
+  let tileEls = {};
   let lastWidth = 0;
-
-  /* Pfad wie in der Skizze: Reihe nach rechts, ein Verbindungsfeld nach unten, Reihe nach links … */
-  function layoutPath(n, C) {
-    const out = [];
-    let r = 0, dir = 1, i = 0;
-    while (i < n) {
-      for (let k = 0; k < C && i < n; k++, i++) {
-        out.push({ r: r, c: dir === 1 ? k : C - 1 - k });
-      }
-      if (i >= n) break;
-      r++;
-      out.push({ r: r, c: dir === 1 ? C - 1 : 0 });
-      i++;
-      r++;
-      dir = -dir;
-    }
-    return out;
-  }
+  let pick = null; /* { targets: {id: opt}, resolve, reject } */
 
   function category(f) {
     switch (f.type) {
       case 'start': return 'start';
       case 'key': return 'key';
       case 'gate': return 'gate';
-      case 'quiz': return 'quiz';
       case 'news': return 'news';
       case 'state': return 'state';
-      case 'duel': return 'duel';
+      case 'debate': return 'duel';
+      case 'choice': return 'choice';
+      case 'fork': return 'fork';
       case 'steps': return f.steps > 0 ? 'good' : 'bad';
       case 'skip': return 'bad';
-      case 'polls': return f.polls < 0 ? 'bad' : 'good';
-      case 'money': return f.money < 0 ? 'bad' : 'good';
+      case 'polls': return (f.polls || 0) + (f.money || 0) < 0 ? 'bad' : 'good';
+      case 'money': return (f.money || 0) < 0 ? 'bad' : 'good';
       case 'again': return 'good';
       default: return 'plain';
     }
@@ -54,123 +37,118 @@ window.PG = window.PG || {};
   function isOff(f) {
     const s = PG.G.st ? PG.G.st.settings : null;
     if (!s) return false;
-    if (f.type === 'quiz' && !s.quiz) return true;
     if (f.type === 'news' && !s.news) return true;
-    if ((f.type === 'money' || f.type === 'polls') && !s.resources) return true;
     if (f.type === 'state' && s.finale === 'race') return true;
     return false;
   }
 
   function badge(f) {
-    const s = PG.G.st ? PG.G.st.settings : {};
     switch (f.type) {
       case 'steps': return (f.steps > 0 ? '+' : '−') + Math.abs(f.steps);
-      case 'money': return s.resources ? PG.fmt.money(f.money, true) : '';
-      case 'polls': return s.resources ? (f.money ? PG.fmt.money(f.money, true) + ' · ' : '') + PG.fmt.polls(f.polls, true) : '';
+      case 'money': return PG.fmt.money(f.money, true) + (f.polls ? ' · ' + PG.fmt.polls(f.polls, true) : '');
+      case 'polls': return (f.money ? PG.fmt.money(f.money, true) + ' · ' : '') + PG.fmt.polls(f.polls, true);
       case 'again': return '×2';
       case 'skip': return '⏸';
       case 'gate': return '2 · 4 · 6';
-      case 'quiz': return s.quiz ? PG.fmt.polls(4, true) : '';
-      case 'duel': return PG.fmt.polls(6, true);
+      case 'choice': return 'A / B';
+      case 'debate': return '±%';
       default: return '';
     }
   }
 
-  function tileHTML(f, i, p) {
+  function fieldTitle(f) { return f.type === 'state' ? tx(PG.STATES[f.state].name) : tx(f.title); }
+
+  function tileHTML(f) {
     const st = PG.G.st;
     const cat = category(f);
     const off = isOff(f);
-    let title, icon, fx, extraCls = '', style = 'grid-row:' + (p.r + 1) + ';grid-column:' + (p.c + 1) + ';';
-    let ownerBadge = '';
+    const p = f.pos;
+    let style = 'grid-row:' + (p.r + 1) + ' / span ' + p.rs + ';grid-column:' + (p.c + 1) + ';';
+    let cls = 'tile tile--' + cat + (off ? ' is-off' : '') + (p.rs > 1 ? ' is-tall' : '');
+    if (f.lane !== undefined) cls += f.lane === 0 ? ' lane-a' : ' lane-b';
+    let icon, fx = badge(f), extra = '';
     if (f.type === 'state') {
       const s = PG.STATES[f.state];
-      title = tx(s.name);
       icon = '<span class="tile-code">' + s.code + '</span>';
       fx = s.ev + ' ' + t('evShort');
       const owner = st && st.owners[f.state] !== undefined ? PG.player(st.owners[f.state]) : null;
       if (owner && !off) {
-        extraCls = ' is-owned';
+        cls += ' is-owned';
         style += '--owner:' + owner.color + ';';
-        ownerBadge = '<span class="tile-owner" title="' + esc(owner.name) + '">' + esc(PG.initial(owner.name)) + '</span>';
+        extra += '<span class="tile-owner" title="' + esc(owner.name) + '">' + esc(PG.initial(owner.name)) + '</span>';
       }
-      if (!off) ownerBadge += '<span class="tile-need" title="' + esc(t('stateNeedInfo', { need: PG.stateNeed(f.state, !!owner) })) + '">' + PG.stateNeed(f.state, !!owner) + '+</span>';
+      if (!off) extra += '<span class="tile-need">' + PG.stateNeed(f.state, !!owner) + '+</span>';
     } else {
-      title = tx(f.title);
-      icon = f.icon;
-      fx = badge(f);
+      icon = PG.icon(f.icon);
     }
-    const label = (f.type === 'state' ? tx(PG.STATES[f.state].name) : tx(f.title)) + ' (' + i + ')';
-    return '<button type="button" class="tile tile--' + cat + (off ? ' is-off' : '') + extraCls + '" style="' + style +
-      '" data-idx="' + i + '" aria-label="' + esc(label) + '">' +
-      '<span class="tile-num">' + i + '</span>' +
-      '<span class="tile-icon" aria-hidden="true">' + icon + '</span>' +
-      '<span class="tile-title">' + esc(title) + '</span>' +
+    if (f.type === 'fork' && f.lanes) {
+      extra += '<span class="tile-lanes"><span class="ln ln-a">▲ ' + esc(tx(f.lanes[0])) + '</span><span class="ln ln-b">▼ ' + esc(tx(f.lanes[1])) + '</span></span>';
+    }
+    if (f.lane !== undefined && f.type !== 'state') extra += '<span class="tile-lane">' + (f.lane === 0 ? '▲' : '▼') + '</span>';
+    return '<button type="button" class="' + cls + '" style="' + style + '" data-idx="' + f.id + '" aria-label="' + esc(fieldTitle(f) + ' (' + f.id + ')') + '">' +
+      '<span class="tile-num">' + f.id + '</span>' +
+      '<span class="tile-icon">' + icon + '</span>' +
+      '<span class="tile-title">' + esc(fieldTitle(f)) + '</span>' +
       (fx ? '<span class="tile-fx">' + esc(fx) + '</span>' : '') +
-      ownerBadge +
-      '</button>';
+      extra + '<span class="tile-die" aria-hidden="true"></span></button>';
   }
 
   function render() {
     const st = PG.G.st;
     if (!st || !boardEl) return;
     const b = PG.BOARDS[view - 1];
-    const n = b.fields.length;
+    const C = PG.COLS;
     const w = boardEl.clientWidth || 800;
     lastWidth = w;
-    const C = PG.clamp(Math.floor((w + GAP) / (112 + GAP)), 4, 9);
-    cols = C;
     const tileW = (w - (C - 1) * GAP) / C;
-    const tileH = Math.max(72, Math.round(tileW * 0.94));
+    const tiny = tileW < 74;
+    const tileH = tiny ? Math.round(tileW * 1.08) : Math.max(84, Math.round(tileW * 0.95));
     boardEl.style.setProperty('--cols', C);
     boardEl.style.setProperty('--tile-w', tileW + 'px');
     boardEl.style.setProperty('--tile-h', tileH + 'px');
     boardEl.style.setProperty('--gap', GAP + 'px');
-    boardEl.classList.toggle('is-compact', tileW < 96);
-
-    const pos = layoutPath(n, C);
-    const rowsUsed = pos[pos.length - 1].r + 1;
+    boardEl.style.gridTemplateRows = 'repeat(' + b.rows + ', var(--tile-h))';
+    boardEl.classList.toggle('is-tiny', tiny);
+    boardEl.classList.toggle('is-compact', !tiny && tileW < 104);
     let html = '';
-    /* Beschriftungen in den freien Flächen neben den Verbindungsfeldern */
-    if (rowsUsed > 2 && C > 3) {
-      html += '<div class="board-mark board-mark--title" style="grid-row:2;grid-column:1 / ' + C + ';">' +
-        '<span class="mark-round">' + t('round') + ' ' + t('roundRoman')[view - 1] + '</span>' +
-        '<span class="mark-title">' + esc(tx(b.title)) + '</span></div>';
-    }
-    if (rowsUsed > 4 && C > 3) {
-      html += '<div class="board-mark board-mark--question" style="grid-row:4;grid-column:2 / ' + (C + 1) + ';">' +
-        esc(tx(b.question)) + '</div>';
-    }
-    b.fields.forEach(function (f, i) { html += tileHTML(f, i, pos[i]); });
+    b.fields.forEach(function (f) { html += tileHTML(f); });
     html += '<svg class="board-path" aria-hidden="true"></svg><div class="board-arrows" aria-hidden="true"></div><div class="tokens" aria-hidden="true"></div>';
     boardEl.innerHTML = html;
     boardEl.dataset.round = String(view);
-    tileEls = Array.prototype.slice.call(boardEl.querySelectorAll('.tile'));
+    tileEls = {};
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.tile'), function (el) { tileEls[el.dataset.idx] = el; });
     drawPath();
     renderTokens(true);
+    if (pick && pick.round === view) applyTargets();
   }
 
-  function centerOf(el) {
-    return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 };
-  }
+  function centerOf(el) { return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 }; }
 
   function drawPath() {
     const svg = boardEl.querySelector('.board-path');
     const arrows = boardEl.querySelector('.board-arrows');
-    if (!svg || !tileEls.length) return;
+    if (!svg) return;
     const W = boardEl.scrollWidth, H = boardEl.scrollHeight;
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     svg.setAttribute('width', W);
     svg.setAttribute('height', H);
-    const pts = tileEls.map(centerOf);
-    const d = pts.map(function (p, i) { return (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
+    const b = PG.BOARDS[view - 1];
+    let d = '', ah = '';
+    b.fields.forEach(function (f) {
+      const a = centerOf(tileEls[f.id]);
+      f.next.forEach(function (nid) {
+        const n = PG.BOARDS[view - 1].fields[nid];
+        let bpt = centerOf(tileEls[nid]);
+        /* Bei hohen Feldern (Gabelung) zur passenden Reihe zeigen */
+        let ax = a.x, ay = a.y, bx = bpt.x, by = bpt.y;
+        if (f.pos.rs > 1) ay = by;
+        if (n.pos.rs > 1) by = ay;
+        d += 'M' + ax.toFixed(1) + ' ' + ay.toFixed(1) + 'L' + bx.toFixed(1) + ' ' + by.toFixed(1);
+        const ang = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
+        ah += '<span class="arrow" style="left:' + ((ax + bx) / 2).toFixed(1) + 'px;top:' + ((ay + by) / 2).toFixed(1) + 'px;transform:translate(-50%,-50%) rotate(' + ang.toFixed(0) + 'deg)"></span>';
+      });
+    });
     svg.innerHTML = '<path d="' + d + '" class="path-glow"/><path d="' + d + '" class="path-line"/>';
-    let ah = '';
-    for (let i = 0; i < pts.length - 1; i++) {
-      const a = pts[i], b = pts[i + 1];
-      const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-      ah += '<span class="arrow" style="left:' + ((a.x + b.x) / 2).toFixed(1) + 'px;top:' + ((a.y + b.y) / 2).toFixed(1) +
-        'px;transform:translate(-50%,-50%) rotate(' + ang.toFixed(0) + 'deg)"></span>';
-    }
     arrows.innerHTML = ah;
   }
 
@@ -195,25 +173,22 @@ window.PG = window.PG || {};
     const layer = boardEl.querySelector('.tokens');
     if (!layer) return;
     const cur = PG.current();
-    const here = st.players.filter(function (p) { return p.round === view; });
     const groups = {};
-    here.forEach(function (p) { (groups[p.pos] = groups[p.pos] || []).push(p); });
+    st.players.filter(function (p) { return p.round === view; }).forEach(function (p) { (groups[p.pos] = groups[p.pos] || []).push(p); });
     const seen = {};
     Object.keys(groups).forEach(function (k) {
       const list = groups[k];
-      /* aktiver Spieler zuletzt, damit er oben liegt */
       list.sort(function (a, b) { return (cur && a.id === cur.id) - (cur && b.id === cur.id); });
-      const tile = tileEls[+k];
+      const tile = tileEls[k];
       if (!tile) return;
       const tw = tile.offsetWidth, th = tile.offsetHeight;
       const c = centerOf(tile);
       const n = list.length;
       const gc = n <= 1 ? 1 : (n <= 4 ? 2 : (n <= 9 ? 3 : 4));
       const gr = Math.ceil(n / gc);
-      const base = PG.clamp(tw * 0.34, 18, 30);
-      const size = Math.min(base, (tw * 0.92) / gc, (th * 0.74) / gr);
-      /* Figuren stehen unten im Feld, damit der Feldname lesbar bleibt */
-      const bottomY = tile.offsetTop + th - size * 0.5 - Math.max(4, th * 0.05);
+      const base = PG.clamp(tw * 0.34, 16, 32);
+      const size = Math.min(base, (tw * 0.95) / gc, (Math.min(th, tw * 1.1) * 0.8) / gr);
+      const bottomY = tile.offsetTop + th - size * 0.5 - Math.max(3, th * 0.05);
       list.forEach(function (p, j) {
         const col = j % gc, row = Math.floor(j / gc);
         const x = c.x + (col - (gc - 1) / 2) * size * 0.9;
@@ -226,12 +201,8 @@ window.PG = window.PG || {};
         seen[p.id] = true;
       });
     });
-    Array.prototype.slice.call(layer.children).forEach(function (el) {
-      if (!seen[el.dataset.pid]) el.remove();
-    });
-    if (instant !== false) {
-      void layer.offsetWidth; /* Layout erzwingen, damit neue Figuren ohne Animation erscheinen */
-    }
+    Array.prototype.slice.call(layer.children).forEach(function (el) { if (!seen[el.dataset.pid]) el.remove(); });
+    if (instant !== false) void layer.offsetWidth;
     Array.prototype.slice.call(layer.querySelectorAll('.no-anim')).forEach(function (el) {
       requestAnimationFrame(function () { el.classList.remove('no-anim'); });
     });
@@ -253,12 +224,13 @@ window.PG = window.PG || {};
     if (!tile || !tile.scrollIntoView) return;
     const r = tile.getBoundingClientRect();
     const vh = window.innerHeight || 800;
-    if (r.top < 70 || r.bottom > vh - 150) {
+    if (r.top < 70 || r.bottom > vh - 190) {
       try { tile.scrollIntoView({ block: 'center', behavior: PG.reducedMotion() ? 'auto' : 'smooth' }); } catch (e) { /* alt */ }
     }
   }
 
-  async function walk(p, target, ms) {
+  /** Figur Feld für Feld entlang eines Weges bewegen. dir = +1 vorwärts, -1 rückwärts. */
+  async function walkPath(p, ids, ms, dir) {
     const st = PG.G.st;
     if (p.round !== view && st.settings.followCam) {
       setView(p.round);
@@ -266,14 +238,49 @@ window.PG = window.PG || {};
     }
     const visible = p.round === view;
     if (visible) scrollToTile(p.pos);
-    const dir = target > p.pos ? 1 : -1;
-    while (p.pos !== target) {
-      p.pos += dir;
+    for (let i = 0; i < ids.length; i++) {
+      if (dir > 0) p.trail.push(p.pos);
+      else p.trail.pop();
+      p.pos = ids[i];
       if (visible) { renderTokens(false); hop(p, ms); PG.Audio.step(); }
       await PG.sleep(visible ? ms : 0);
     }
     if (visible) scrollToTile(p.pos);
     PG.UI.renderSide();
+  }
+
+  /* ---------- Zielfelder zum Antippen ---------- */
+  function applyTargets() {
+    Object.keys(tileEls).forEach(function (id) {
+      const el = tileEls[id];
+      const opt = pick && pick.targets[id];
+      el.classList.toggle('is-target', !!opt);
+      const die = el.querySelector('.tile-die');
+      if (die) die.textContent = opt && pick.showDie ? String(opt.die) : '';
+    });
+  }
+
+  /** Wartet, bis der Spieler eines der Zielfelder antippt. opts: [{target, path, die}] */
+  function pickTarget(p, opts, showDie) {
+    if (view !== p.round) setView(p.round);
+    return new Promise(function (resolve, reject) {
+      const targets = {};
+      opts.forEach(function (o) { targets[o.target] = o; });
+      pick = { round: p.round, targets: targets, resolve: resolve, reject: reject, showDie: !!showDie };
+      applyTargets();
+      const first = tileEls[opts[0].target];
+      if (first) {
+        scrollToTile(opts[0].target);
+        try { first.focus({ preventScroll: true }); } catch (e) { /* egal */ }
+      }
+    });
+  }
+
+  function clearPick(abort) {
+    const p = pick;
+    pick = null;
+    applyTargets();
+    if (abort && p) p.reject(PG.ABORT);
   }
 
   function setView(r) {
@@ -284,25 +291,36 @@ window.PG = window.PG || {};
   }
 
   function highlight(idx) {
-    tileEls.forEach(function (el, i) { el.classList.toggle('is-target', i === idx); });
+    Object.keys(tileEls).forEach(function (id) { tileEls[id].classList.toggle('is-hint', +id === idx); });
   }
 
   function init(el) {
     boardEl = el;
     if (window.ResizeObserver) {
-      const ro = new ResizeObserver(function () {
+      new ResizeObserver(function () {
         if (!PG.G.st || !boardEl.offsetParent) return;
-        const w = boardEl.clientWidth;
-        if (Math.abs(w - lastWidth) > 2) render();
-      });
-      ro.observe(boardEl);
+        if (Math.abs(boardEl.clientWidth - lastWidth) > 2) render();
+      }).observe(boardEl);
     } else {
       window.addEventListener('resize', function () { if (PG.G.st) render(); });
     }
     boardEl.addEventListener('click', function (e) {
       const tile = e.target.closest('.tile');
-      if (!tile || !PG.UI) return;
-      PG.UI.fieldInfo(view, +tile.dataset.idx);
+      if (!tile) return;
+      const id = tile.dataset.idx;
+      if (pick && pick.round === view && pick.targets[id]) {
+        const opt = pick.targets[id];
+        const res = pick.resolve;
+        pick = null;
+        applyTargets();
+        PG.Audio.click();
+        res(opt);
+        return;
+      }
+      if (pick && pick.round === view) {
+        tile.classList.remove('is-shake'); void tile.offsetWidth; tile.classList.add('is-shake');
+      }
+      if (PG.UI) PG.UI.fieldInfo(view, +id);
     });
   }
 
@@ -310,12 +328,15 @@ window.PG = window.PG || {};
     init: init,
     render: render,
     renderTokens: renderTokens,
-    walk: walk,
+    walkPath: walkPath,
+    pickTarget: pickTarget,
+    clearPick: clearPick,
     setView: setView,
     highlight: highlight,
     category: category,
+    fieldTitle: fieldTitle,
     isOff: isOff,
     get view() { return view; },
-    get cols() { return cols; }
+    get picking() { return !!pick; }
   };
 })(window.PG);

@@ -10,7 +10,6 @@ window.PG = window.PG || {};
   const $ = function (sel, root) { return (root || document).querySelector(sel); };
   const $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
-  const ADVISOR_COST = 5;
   const MAX_PLAYERS = 15;
 
   /* -----------------------------------------------------------------------
@@ -33,7 +32,7 @@ window.PG = window.PG || {};
   /* -----------------------------------------------------------------------
      EINSTELLUNGEN & SETUP (werden im Browser gemerkt)
      ----------------------------------------------------------------------- */
-  const DEFAULT_SETTINGS = { finale: 'night', quiz: true, news: true, resources: true, botSpeed: 'normal', followCam: true };
+  const DEFAULT_SETTINGS = { finale: 'night', quiz: true, news: true, resources: true, botSpeed: 'normal', followCam: true, autoCloseBots: false };
 
   function randomHome() {
     const codes = PG.STATE_CODES.filter(function (c) { return c !== 'DC'; });
@@ -107,6 +106,7 @@ window.PG = window.PG || {};
         (o.title ? '<h2 class="card-title" id="' + titleId + '">' + esc(o.title) + '</h2>' : '') +
         (o.html || (o.text ? '<p class="card-text">' + esc(o.text) + '</p>' : '')) +
         chipsHTML(o.chips) +
+        (o.fact ? '<p class="card-fact"><b>' + esc(t('factLabel')) + '</b> ' + esc(tx(o.fact)) + '</p>' : '') +
         '</div>' +
         '<div class="card-actions">' + buttons + '</div>' +
         (o.auto ? '<div class="card-timer"><span style="animation-duration:' + o.auto + 'ms"></span></div>' : '') +
@@ -157,10 +157,11 @@ window.PG = window.PG || {};
     openModals.slice().forEach(function (m) { m.abort(); });
     openModals.length = 0;
     if (pendingAction) { const p = pendingAction; pendingAction = null; p.reject(PG.ABORT); }
+    if (PG.Board && PG.Board.picking) PG.Board.clearPick(true);
     $$('.night, .victory', document).forEach(function (el) { el.remove(); });
   }
 
-  /** Standard-Ereigniskarte: Menschen klicken „Weiter“, KI-Züge schließen sich selbst. */
+  /** Standard-Ereigniskarte: wird mit „Weiter“ geschlossen (bei KI nur automatisch, wenn eingestellt). */
   function event(o) {
     return modal({
       kind: o.kind || 'info',
@@ -170,6 +171,7 @@ window.PG = window.PG || {};
       text: o.text,
       html: o.html,
       chips: o.chips,
+      fact: o.fact,
       buttons: o.auto ? [] : [{ label: o.button || t('ok') }],
       auto: o.auto ? autoMs(o.autoBase || 1900) : 0
     });
@@ -208,10 +210,6 @@ window.PG = window.PG || {};
     let faces = '';
     for (let v = 1; v <= 6; v++) faces += '<div class="die-face f' + v + '">' + facePips(v) + '</div>';
     return '<div class="die ' + (extraCls || '') + '"><div class="die-cube" data-x="0" data-y="0">' + faces + '</div></div>';
-  }
-
-  function flatDieHTML(v) {
-    return '<span class="die-flat" aria-hidden="true">' + facePips(v) + '</span>';
   }
 
   function rollCube(dieEl, value, dur) {
@@ -381,6 +379,7 @@ window.PG = window.PG || {};
       '</div></fieldset>' +
       '<fieldset class="fs"><legend>' + esc(t('botSpeed')) + '</legend><div class="segs">' + speed + '</div>' +
       toggle('followCam', t('followCam'), '') +
+      toggle('autoCloseBots', t('optAutoClose'), t('optAutoCloseDesc')) +
       '</fieldset>';
   }
 
@@ -556,7 +555,12 @@ window.PG = window.PG || {};
       '<p class="rh-intro">' + esc(tx(b.intro)) + '</p>';
   }
 
+  const BUY_KINDS = ['advisor', 'tv', 'smear', 'office'];
+  const BUY_ICON = { advisor: 'briefcase', tv: 'tv', smear: 'folder', office: 'cityhall' };
+
   function turnPanelSkeleton() {
+    let wide = true;
+    try { wide = window.matchMedia('(min-width: 861px)').matches; } catch (e) { /* egal */ }
     $('#turnPanel').innerHTML =
       '<div class="turn-head">' +
       '<span class="turn-token" id="turnToken"></span>' +
@@ -565,26 +569,26 @@ window.PG = window.PG || {};
       '</div>' +
       '<div class="dice-row">' + dieHTML().replace('class="die ', 'id="dieA" class="die ') + dieHTML('die--b').replace('class="die ', 'id="dieB" hidden class="die ') + '</div>' +
       '<p class="turn-msg" id="turnMsg" aria-live="polite"></p>' +
-      '<div class="turn-actions">' +
-      '<button type="button" class="btn btn-gold btn-lg" id="btnRoll"></button>' +
-      '<button type="button" class="btn btn-outline" id="btnAdvisor"></button>' +
-      '</div>';
-    $('#btnRoll').addEventListener('click', function () { takeAction(false); });
-    $('#btnAdvisor').addEventListener('click', function () { takeAction(true); });
+      '<div class="turn-actions"><button type="button" class="btn btn-gold btn-lg" id="btnRoll"></button></div>' +
+      '<details class="budget" id="budget"' + (wide ? ' open' : '') + '><summary id="budgetSum"></summary><div class="budget-grid" id="budgetGrid"></div></details>';
+    $('#btnRoll').addEventListener('click', takeAction);
+    $('#budgetGrid').addEventListener('click', function (e) {
+      const b = e.target.closest('[data-buy]');
+      if (!b || !pendingAction || b.disabled) return;
+      PG.Game.buy(b.dataset.buy).then(renderTurn);
+    });
   }
 
   let pendingAction = null;
   let turnMode = 'busy';
 
-  function takeAction(advisor) {
-    if (!pendingAction) return;
-    const p = PG.current();
-    if (advisor && (!PG.G.st.settings.resources || p.money < ADVISOR_COST)) return;
+  function takeAction() {
+    if (!pendingAction || openModals.length) return;
     const a = pendingAction; pendingAction = null;
     turnMode = 'busy';
     PG.Audio.unlock();
     renderTurn();
-    a.resolve({ advisor: advisor });
+    a.resolve();
   }
 
   function waitHuman() {
@@ -607,24 +611,37 @@ window.PG = window.PG || {};
     $('#turnToken').textContent = PG.initial(p.name);
     $('#turnName').innerHTML = esc(p.name) + (p.isBot ? ' <span class="tag tag--ai">' + ICON.bot + t('ai') + '</span>' : '');
     $('#turnWhere').textContent = t('round') + ' ' + t('roundRoman')[p.round - 1] + ' · ' + t('posShort', { f: p.pos });
-    const last = PG.lastIndex(p.round);
-    let msg;
-    if (p.skip > 0) msg = t('skipHint', { name: p.name });
+    const dist = PG.Game.distToKey(p);
+    let msg = '';
+    if (turnMode === 'pick') msg = t('tapHint');
+    else if (turnMode === 'pickFork') msg = t('tapHintFork');
+    else if (p.skip > 0) msg = t('skipHint', { name: p.name });
     else if (turnMode === 'bot') msg = t('botThinking', { name: p.name });
-    else if (p.round === 1 && p.pos === PG.GATE && !p.qualified) msg = t('gateHint');
-    else if (last - p.pos <= 6) msg = t('exactHint', { n: last - p.pos });
-    else msg = t('rollPrompt', { name: p.name });
-    if (turnMode === 'busy' && !p.isBot) msg = '';
+    else if (turnMode === 'human') {
+      if (p.round === 1 && p.pos === PG.GATE && !p.qualified) msg = t('gateHint');
+      else if (dist <= 6) msg = t('exactHint', { n: dist });
+      else msg = t('rollPrompt', { name: p.name });
+      if (p.advisor) msg += ' ' + t('advisorActive');
+    }
     $('#turnMsg').textContent = msg;
-    const btnRoll = $('#btnRoll'), btnAdv = $('#btnAdvisor');
-    btnRoll.textContent = t('roll');
+    const panel = $('#turnPanel');
+    panel.classList.toggle('is-human', turnMode === 'human');
+    panel.classList.toggle('is-picking', turnMode === 'pick' || turnMode === 'pickFork');
+    panel.style.setProperty('--c', p.color);
+    const btnRoll = $('#btnRoll');
+    btnRoll.textContent = p.advisor ? t('rollTwo') : t('roll');
     btnRoll.disabled = turnMode !== 'human';
-    btnAdv.hidden = !st.settings.resources;
-    btnAdv.textContent = t('advisor', { c: PG.fmt.money(ADVISOR_COST) });
-    btnAdv.title = t('advisorHint');
-    btnAdv.disabled = turnMode !== 'human' || p.money < ADVISOR_COST;
-    $('#turnPanel').classList.toggle('is-human', turnMode === 'human');
-    $('#turnPanel').style.setProperty('--c', p.color);
+    $('#budgetSum').innerHTML = '<span>' + esc(t('budgetTitle')) + '</span><b>' + esc(PG.fmt.money(p.money)) + '</b>';
+    $('#budgetGrid').innerHTML = BUY_KINDS.map(function (k) {
+      const bought = !!p.buys[k];
+      const lockedRound = k === 'office' && p.round !== 3;
+      const can = turnMode === 'human' && !p.isBot && PG.Game.canBuy(p, k);
+      return '<button type="button" class="buy' + (bought ? ' is-bought' : '') + '" data-buy="' + k + '"' + (can ? '' : ' disabled') + '>' +
+        '<span class="buy-ico">' + PG.icon(BUY_ICON[k]) + '</span>' +
+        '<span class="buy-name">' + esc(t({ advisor: 'buyAdvisor', tv: 'buyTv', smear: 'buySmear', office: 'buyOffice' }[k])) + '</span>' +
+        '<span class="buy-desc">' + esc(bought ? t('bought') : (lockedRound ? t('buyRound3') : t({ advisor: 'buyAdvisorDesc', tv: 'buyTvDesc', smear: 'buySmearDesc', office: 'buyOfficeDesc' }[k]))) + '</span>' +
+        '<span class="buy-cost">' + esc(PG.fmt.money(PG.Game.COSTS[k])) + '</span></button>';
+    }).join('');
   }
 
   function renderPlayers() {
@@ -685,30 +702,48 @@ window.PG = window.PG || {};
   /* -----------------------------------------------------------------------
      FELD-INFO (Klick auf ein Feld)
      ----------------------------------------------------------------------- */
+  function chipsFor(o) {
+    const out = [];
+    if (o.steps) out.push({ label: PG.fmt.steps(o.steps), tone: o.steps > 0 ? 'good' : 'bad' });
+    if (o.money) out.push({ label: t('chipMoney', { v: PG.fmt.money(o.money, true) }), tone: o.money > 0 ? 'good' : 'bad' });
+    if (o.polls) out.push({ label: t('chipPolls', { v: PG.fmt.polls(o.polls, true) }), tone: o.polls > 0 ? 'good' : 'bad' });
+    if (o.skip) out.push({ label: t('chipSkip'), tone: 'bad' });
+    return out;
+  }
+
   function fieldInfo(round, idx) {
     const st = PG.G.st; if (!st) return;
     const f = PG.fieldAt(round, idx);
     const cur = PG.current();
     const home = cur ? tx(PG.STATES[cur.home].name) : '';
-    let title, text, icon = f.icon, chips = [];
+    let title, text = '', icon, chips = [], html = null;
     if (f.type === 'state') {
       const s = PG.STATES[f.state];
       title = tx(s.name);
       icon = '<span class="card-code">' + s.code + '</span>';
       const owner = st.owners[f.state] !== undefined ? PG.player(st.owners[f.state]) : null;
-      text = s.ev + ' ' + t('ev') + (owner ? ' · ' + owner.name : '') + ' · ' + t('stateNeedInfo', { need: PG.stateNeed(f.state, !!owner && (!cur || owner.id !== cur.id)) });
+      const offices = st.players.filter(function (p) { return p.offices && p.offices.indexOf(f.state) >= 0; }).map(function (p) { return p.name; });
+      text = s.ev + ' ' + t('ev') + (owner ? ' · ' + owner.name : '') + ' · ' + t('stateNeedInfo', { need: PG.stateNeed(f.state, !!owner) }) +
+        (offices.length ? ' · ' + t('officeInfo', { names: offices.join(', ') }) : '');
     } else {
       title = tx(f.title);
-      if (f.type === 'quiz') text = t('optQuizDesc');
-      else if (f.type === 'news') text = t('optNewsDesc');
+      icon = PG.medallion(f.icon);
+      if (f.type === 'news') text = t('optNewsDesc');
+      else if (f.type === 'debate') text = tx(f.text) + ' ' + t('debateInfo');
       else text = tx(f.text, { home: home });
-      if (f.steps) chips.push({ label: PG.fmt.steps(f.steps), tone: f.steps > 0 ? 'good' : 'bad' });
-      if (st.settings.resources && f.money) chips.push({ label: t('chipMoney', { v: PG.fmt.money(f.money, true) }), tone: f.money > 0 ? 'good' : 'bad' });
-      if (st.settings.resources && f.polls) chips.push({ label: t('chipPolls', { v: PG.fmt.polls(f.polls, true) }), tone: f.polls > 0 ? 'good' : 'bad' });
+      chips = chipsFor(f);
+      if (f.type === 'choice') {
+        html = '<p class="card-text">' + esc(text) + '</p><div class="choices-ab is-preview">' + f.choices.map(function (c, i) {
+          return '<div class="opt"><span class="opt-letter">' + 'AB'[i] + '</span><span class="opt-label">' + esc(tx(c.label)) + '</span>' + chipsHTML(chipsFor(c)) + '</div>';
+        }).join('') + '</div>';
+      }
+      if (f.type === 'fork' && f.lanes) {
+        html = '<p class="card-text">' + esc(text) + '</p><p class="card-text"><b>▲ ' + esc(tx(f.lanes[0])) + '</b> · <b>▼ ' + esc(tx(f.lanes[1])) + '</b></p>';
+      }
     }
     modal({
       kind: PG.Board.category(f), eyebrow: t('roundN', { n: round }) + ' · ' + t('posShort', { f: idx }),
-      icon: icon, title: title, text: text, chips: chips,
+      icon: icon, title: title, text: text, html: html, chips: chips, fact: f.fact,
       buttons: [{ label: t('close'), cls: 'btn-outline' }], dismissable: true, layer: 'peek'
     }).catch(function () {});
   }
@@ -717,72 +752,138 @@ window.PG = window.PG || {};
      SPEZIELLE KARTEN
      ----------------------------------------------------------------------- */
 
-  /** Quiz. Gibt true (richtig) / false (falsch) zurück. */
-  function quiz(o) {
-    const q = o.q;
-    const order = PG.shuffle([0, 1, 2, 3]);
-    const html =
-      '<p class="quiz-for">' + esc(t('quizFor', { name: o.player.name })) + '</p>' +
-      '<p class="quiz-q">' + esc(tx(q.q)) + '</p>' +
-      '<div class="quiz-opts">' + order.map(function (ai, k) {
-        return '<button type="button" class="quiz-opt" data-a="' + ai + '"' + (o.isBot ? ' disabled' : '') + '><span class="quiz-letter">' + 'ABCD'[k] + '</span><span>' + esc(tx(q.a[ai])) + '</span></button>';
-      }).join('') + '</div>' +
-      '<div class="quiz-result" hidden></div>';
-    let result = false;
-    return modal({
-      kind: 'quiz', eyebrow: t('evQuiz'), icon: '❓', html: html, buttons: [], noFocus: o.isBot,
-      onMount: function (card, close) {
-        function reveal(choice) {
-          result = choice === q.c;
-          $$('.quiz-opt', card).forEach(function (b) {
-            b.disabled = true;
-            const a = +b.dataset.a;
-            if (a === q.c) b.classList.add('is-correct');
-            else if (a === choice) b.classList.add('is-wrong');
-          });
-          if (result) PG.Audio.good(); else PG.Audio.bad();
-          const r = $('.quiz-result', card);
-          r.hidden = false;
-          r.className = 'quiz-result ' + (result ? 'is-good' : 'is-bad');
-          r.innerHTML = '<b>' + esc(result ? t('quizCorrect') : t('quizWrong')) + '</b> ' +
-            (result ? '' : esc(t('quizAnswer', { a: tx(q.a[q.c]) })) + ' ') + esc(tx(q.x)) +
-            '<span class="quiz-reward">' + esc(o.rewardText(result)) + '</span>';
-          const actions = $('.card-actions', card);
-          if (o.isBot) {
-            const bar = document.createElement('div');
-            bar.className = 'card-timer';
-            const ms = autoMs(2200);
-            bar.innerHTML = '<span style="animation-duration:' + ms + 'ms"></span>';
-            card.appendChild(bar);
-            setTimeout(function () { close(result); }, ms);
-            card.addEventListener('click', function () { close(result); });
-          } else {
-            actions.innerHTML = '<button type="button" class="btn btn-gold">' + esc(t('ok')) + '</button>';
-            const btn = $('.btn', actions);
-            btn.addEventListener('click', function () { close(result); });
-            btn.focus({ preventScroll: true });
-          }
-        }
-        if (o.isBot) {
-          setTimeout(function () {
-            if (!card.isConnected) return;
-            let pick = q.c;
-            if (!o.botCorrect) { const wrong = [0, 1, 2, 3].filter(function (x) { return x !== q.c; }); pick = wrong[PG.rnd(3)]; }
-            const btn = $('.quiz-opt[data-a="' + pick + '"]', card);
-            if (btn) btn.classList.add('is-picked');
-            setTimeout(function () { if (card.isConnected) reveal(pick); }, autoMs(700));
-          }, autoMs(1100));
-        } else {
-          $$('.quiz-opt', card).forEach(function (b) {
-            b.addEventListener('click', function () { reveal(+b.dataset.a); });
-          });
-          setTimeout(function () { const f = $('.quiz-opt', card); if (f) f.focus({ preventScroll: true }); }, 30);
-        }
-      }
-    }).then(function () { return result; });
+  /** „Weiter“-Knopf oder automatisches Schließen am Ende einer interaktiven Karte */
+  function finishCard(card, close, value, auto) {
+    const actions = $('.card-actions', card);
+    if (auto) { setTimeout(function () { close(value); }, autoMs(1700)); return; }
+    actions.innerHTML = '<button type="button" class="btn btn-gold">' + esc(t('ok')) + '</button>';
+    const b = $('.btn', actions);
+    b.addEventListener('click', function () { PG.Audio.click(); close(value); });
+    b.focus({ preventScroll: true });
   }
 
-  /** TV-Duell / Würfelduell. Würfe werden vorher bestimmt, hier nur gezeigt. */
+  /** Entscheidung zwischen zwei Möglichkeiten. Gibt den Index (0/1) zurück. */
+  function choice(o) {
+    const html = '<p class="card-text">' + esc(o.text) + '</p>' +
+      '<div class="choices-ab">' + o.options.map(function (op, i) {
+        return '<button type="button" class="opt" data-i="' + i + '"' + (op.disabled || o.botIdx >= 0 ? ' disabled' : '') + '>' +
+          '<span class="opt-letter">' + 'AB'[i] + '</span><span class="opt-label">' + esc(op.label) + '</span>' + chipsHTML(op.chips) +
+          (op.disabled ? '<small class="opt-note">' + esc(t('notEnoughMoney')) + '</small>' : '') + '</button>';
+      }).join('') + '</div>' +
+      '<p class="duel-result" hidden></p>';
+    let picked = 0;
+    return modal({
+      kind: 'choice', eyebrow: t('evChoice'), icon: o.icon, title: o.title, html: html, fact: o.fact, buttons: [], noFocus: true,
+      onMount: function (card, close) {
+        function finish(i) {
+          picked = i;
+          $$('.opt', card).forEach(function (b) {
+            b.disabled = true;
+            b.classList.toggle('is-picked', +b.dataset.i === i);
+            b.classList.toggle('is-dim', +b.dataset.i !== i);
+          });
+          if (o.botIdx >= 0) {
+            const r = $('.duel-result', card);
+            r.hidden = false;
+            r.textContent = t('botChose', { name: o.player.name, opt: o.options[i].label });
+          }
+          PG.Audio.click();
+          finishCard(card, close, i, o.auto);
+        }
+        if (o.botIdx >= 0) {
+          setTimeout(function () { if (card.isConnected) finish(o.botIdx); }, autoMs(1000));
+        } else {
+          $$('.opt', card).forEach(function (b) { b.addEventListener('click', function () { if (!b.disabled) finish(+b.dataset.i); }); });
+          setTimeout(function () { const f = $('.opt:not([disabled])', card); if (f) f.focus({ preventScroll: true }); }, 30);
+        }
+      }
+    }).then(function () { return picked; });
+  }
+
+  /** TV-Debatte als Quiz-Duell. Gibt { a: richtig?, b: richtig? } zurück. */
+  function debate(o) {
+    const q = o.q;
+    const order = PG.shuffle([0, 1, 2, 3]);
+    const side = function (pl, who) {
+      return '<div class="deb-side" data-who="' + who + '"><span class="turn-token" style="--c:' + pl.color + '">' + esc(PG.initial(pl.name)) + '</span>' +
+        '<b>' + esc(pl.name) + '</b><span class="deb-status"></span></div>';
+    };
+    const html = '<p class="card-text">' + esc(o.text) + '</p>' +
+      '<div class="deb-vs">' + side(o.a, 'a') + '<span class="duel-vs">VS</span>' + side(o.b, 'b') + '</div>' +
+      '<p class="quiz-q">' + esc(tx(q.q)) + '</p>' +
+      '<p class="deb-turn"></p>' +
+      '<div class="quiz-opts">' + order.map(function (ai, k) {
+        return '<button type="button" class="quiz-opt" data-a="' + ai + '" disabled><span class="quiz-letter">' + 'ABCD'[k] + '</span><span>' + esc(tx(q.a[ai])) + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="quiz-result" hidden></div>';
+    const res = { a: false, b: false };
+    return modal({
+      kind: 'duel', eyebrow: t('evDebate'), icon: PG.medallion('podium'), title: o.title, html: html, fact: o.fact, buttons: [], noFocus: true,
+      onMount: function (card, close) {
+        const answers = {};
+        let asking = null;
+        const turnLine = $('.deb-turn', card);
+        const isBot = function (pl) { return !!(pl.isBot || pl.isNpc); };
+        function setOpts(enabled) { $$('.quiz-opt', card).forEach(function (b) { b.disabled = !enabled; b.classList.remove('is-picked'); }); }
+        function ask(who) {
+          asking = who;
+          const pl = o[who];
+          $$('.deb-side', card).forEach(function (el) { el.classList.toggle('is-asking', el.dataset.who === who); });
+          turnLine.textContent = (who === 'b' && !isBot(o.a) && !isBot(pl)) ? t('debateNoPeek', { name: pl.name }) : t('debateTurn', { name: pl.name });
+          if (isBot(pl)) {
+            setOpts(false);
+            setTimeout(function () {
+              if (!card.isConnected) return;
+              let pick = q.c;
+              const right = who === 'a' ? o.aBotRight : o.bBotRight;
+              if (!right) { const wrong = [0, 1, 2, 3].filter(function (x) { return x !== q.c; }); pick = wrong[PG.rnd(3)]; }
+              const b = $('.quiz-opt[data-a="' + pick + '"]', card);
+              if (b) b.classList.add('is-picked');
+              setTimeout(function () { if (card.isConnected) answer(who, pick); }, autoMs(600));
+            }, autoMs(1000));
+          } else {
+            setOpts(true);
+            setTimeout(function () { const f = $('.quiz-opt', card); if (f) f.focus({ preventScroll: true }); }, 30);
+          }
+        }
+        function answer(who, idx) {
+          answers[who] = idx;
+          PG.Audio.click();
+          $('.deb-side[data-who="' + who + '"] .deb-status', card).textContent = '✓ ' + t('debateAnswered');
+          setOpts(false);
+          if (who === 'a') ask('b'); else reveal();
+        }
+        function reveal() {
+          asking = null;
+          turnLine.textContent = '';
+          $$('.deb-side', card).forEach(function (el) { el.classList.remove('is-asking'); });
+          res.a = answers.a === q.c; res.b = answers.b === q.c;
+          $$('.quiz-opt', card).forEach(function (b) {
+            const a = +b.dataset.a;
+            if (a === q.c) b.classList.add('is-correct');
+            else if (a === answers.a || a === answers.b) b.classList.add('is-wrong');
+          });
+          ['a', 'b'].forEach(function (who) {
+            const el = $('.deb-side[data-who="' + who + '"] .deb-status', card);
+            el.textContent = (res[who] ? '✓ ' + t('debateRight') : '✗ ' + t('debateWrong')) + ' · ' + tx(q.a[answers[who]]);
+            el.className = 'deb-status ' + (res[who] ? 'is-good' : 'is-bad');
+          });
+          const r = $('.quiz-result', card);
+          r.hidden = false;
+          r.className = 'quiz-result ' + (res.a || res.b ? 'is-good' : 'is-bad');
+          r.innerHTML = '<b>' + esc(o.resultText(o.a, o.b, res.a, res.b)) + '</b> ' + esc(tx(q.x));
+          if (res.a !== res.b) PG.Audio.good(); else PG.Audio.bad();
+          finishCard(card, close, res, o.auto);
+        }
+        $$('.quiz-opt', card).forEach(function (b) {
+          b.addEventListener('click', function () { if (asking && !b.disabled) answer(asking, +b.dataset.a); });
+        });
+        ask('a');
+      }
+    }).then(function () { return res; });
+  }
+
+  /** Würfelduell (Debatte ohne Quiz). Würfe werden vorher bestimmt, hier nur gezeigt. */
   function duel(o) {
     const side = function (pl, cls) {
       return '<div class="duel-side ' + cls + '"><span class="turn-token" style="--c:' + pl.color + '">' + esc(PG.initial(pl.name)) + '</span>' +
@@ -792,7 +893,7 @@ window.PG = window.PG || {};
       '<div class="duel">' + side(o.a, 'duel-a') + '<span class="duel-vs">VS</span>' + side(o.b, 'duel-b') + '</div>' +
       '<p class="duel-result" hidden></p>';
     return modal({
-      kind: 'duel', eyebrow: o.eyebrow || t('evDuel'), icon: o.icon || '📺', title: o.title, html: html, buttons: [], noFocus: true,
+      kind: 'duel', eyebrow: o.eyebrow || t('evDebate'), icon: o.icon || PG.medallion('podium'), title: o.title, html: html, buttons: [], noFocus: true,
       onMount: function (card, close) {
         const actions = $('.card-actions', card);
         function go() {
@@ -807,17 +908,10 @@ window.PG = window.PG || {};
             r.textContent = o.resultText;
             r.className = 'duel-result ' + (o.tone === 'good' ? 'is-good' : (o.tone === 'bad' ? 'is-bad' : ''));
             if (o.tone === 'good') PG.Audio.good(); else if (o.tone === 'bad') PG.Audio.bad();
-            if (o.auto) {
-              setTimeout(function () { close(); }, autoMs(1500));
-            } else {
-              actions.innerHTML = '<button type="button" class="btn btn-gold">' + esc(t('ok')) + '</button>';
-              const b = $('.btn', actions);
-              b.addEventListener('click', function () { close(); });
-              b.focus({ preventScroll: true });
-            }
+            finishCard(card, close, null, o.auto);
           }).catch(function () {});
         }
-        if (o.auto) setTimeout(function () { if (card.isConnected) go(); }, autoMs(700));
+        if (o.a.isBot) setTimeout(function () { if (card.isConnected) go(); }, autoMs(700));
         else {
           actions.innerHTML = '<button type="button" class="btn btn-gold btn-lg">' + esc(t('duelRoll')) + '</button>';
           const b = $('.btn', actions);
@@ -830,8 +924,6 @@ window.PG = window.PG || {};
 
   /**
    * Würfelprobe um einen Bundesstaat.
-   * o: { code, title, text, need, bonusParts:[label], bonus, isBot, cost, canRetry, botRetry,
-   *      successText, failText }
    * Ergebnis: { success: bool, paid: Mio. $ }
    */
   function stateChallenge(o) {
@@ -845,7 +937,7 @@ window.PG = window.PG || {};
       '</div>' +
       '<ul class="chips">' + bonusHTML + '</ul>' +
       '<p class="duel-result" hidden></p>';
-    let result = { success: false, paid: 0 };
+    const result = { success: false, paid: 0 };
     return modal({
       kind: 'state', eyebrow: t('evState'), icon: '<span class="card-code">' + o.code + '</span>', title: o.title,
       html: html, buttons: [], noFocus: true,
@@ -853,13 +945,6 @@ window.PG = window.PG || {};
         const actions = $('.card-actions', card);
         const out = $('.duel-result', card);
         let tries = 0;
-        function finishBtn() {
-          if (o.isBot) { setTimeout(function () { close(result); }, autoMs(1500)); return; }
-          actions.innerHTML = '<button type="button" class="btn btn-gold">' + esc(t('ok')) + '</button>';
-          const b = $('.btn', actions);
-          b.addEventListener('click', function () { close(result); });
-          b.focus({ preventScroll: true });
-        }
         function roll() {
           tries++;
           actions.innerHTML = '';
@@ -872,17 +957,12 @@ window.PG = window.PG || {};
             out.hidden = false;
             out.className = 'duel-result ' + (ok ? 'is-good' : 'is-bad');
             out.textContent = t('stateRolled', { calc: calc }) + '. ' + (ok ? o.successText : o.failText);
-            if (ok) {
-              result.success = true;
-              PG.Audio.claim();
-              finishBtn();
-              return;
-            }
+            if (ok) { result.success = true; PG.Audio.claim(); finishCard(card, close, result, o.auto); return; }
             PG.Audio.bad();
             if (tries === 1 && o.canRetry) {
               if (o.isBot) {
                 if (o.botRetry) { setTimeout(function () { if (card.isConnected) { result.paid += o.cost; roll(); } }, autoMs(900)); }
-                else finishBtn();
+                else finishCard(card, close, result, o.auto);
                 return;
               }
               out.textContent += ' ' + t('stateRetryHint');
@@ -894,7 +974,7 @@ window.PG = window.PG || {};
               $('[data-a="retry"]', actions).focus({ preventScroll: true });
               return;
             }
-            finishBtn();
+            finishCard(card, close, result, o.auto);
           }).catch(function () {});
         }
         if (o.isBot) setTimeout(function () { if (card.isConnected) roll(); }, autoMs(700));
@@ -908,28 +988,39 @@ window.PG = window.PG || {};
     }).then(function () { return result; });
   }
 
-  /** Berater: zwischen zwei Würfen wählen. Gibt den gewählten Wert zurück. */
-  function chooseDie(o) {
-    const opt = function (v, info, i) {
-      return '<button type="button" class="pick" data-i="' + i + '">' + flatDieHTML(v) +
-        '<span class="pick-val">' + v + '</span>' +
-        '<span class="pick-to">' + (info.tooFar ? esc(t('advisorTooFar')) : esc(t('advisorTo')) + ' <b>' + esc(info.label) + '</b>') + '</span></button>';
-    };
-    const html = '<p class="card-text">' + esc(t('advisorPick')) + '</p><div class="picks">' + opt(o.a, o.infoA, 0) + opt(o.b, o.infoB, 1) + '</div>';
+  /** Mitspieler auswählen (Schmutzkampagne). Gibt die id zurück oder null. */
+  function pickPlayer(o) {
+    const html = '<p class="card-text">' + esc(o.text) + '</p><div class="pick-list">' + o.players.map(function (p) {
+      return '<button type="button" class="pick-row" data-id="' + p.id + '"><span class="turn-token" style="--c:' + p.color + '">' + esc(PG.initial(p.name)) + '</span>' +
+        '<span class="pick-name">' + esc(p.name) + '</span><span class="pick-meta">' + esc(PG.fmt.polls(p.polls)) + '</span></button>';
+    }).join('') + '</div>';
+    let picked = null;
     return modal({
-      kind: 'good', eyebrow: t('advisorTitle'), icon: '🧑‍💼', html: html, buttons: [], noFocus: true,
+      kind: 'bad', eyebrow: t('budgetTitle'), icon: PG.medallion('folder'), title: o.title, html: html,
+      buttons: [{ label: t('cancel'), value: null, cls: 'btn-outline' }], dismissable: true, noFocus: true,
       onMount: function (card, close) {
-        $$('.pick', card).forEach(function (b) {
-          const i = +b.dataset.i;
-          const target = i === 0 ? o.infoA.target : o.infoB.target;
-          b.addEventListener('mouseenter', function () { PG.Board.highlight(target); });
-          b.addEventListener('focus', function () { PG.Board.highlight(target); });
-          b.addEventListener('mouseleave', function () { PG.Board.highlight(-1); });
-          b.addEventListener('click', function () { PG.Board.highlight(-1); close(i === 0 ? o.a : o.b); });
-        });
-        setTimeout(function () { const f = $('.pick', card); if (f) f.focus({ preventScroll: true }); }, 30);
+        $$('.pick-row', card).forEach(function (b) { b.addEventListener('click', function () { picked = +b.dataset.id; close(picked); }); });
       }
-    });
+    }).then(function (v) { return v === null ? null : picked; });
+  }
+
+  /** Bundesstaat auswählen (Wahlkampfbüro). Gibt das Kürzel zurück oder null. */
+  function pickState(o) {
+    const st = PG.G.st;
+    const html = '<p class="card-text">' + esc(o.text) + '</p><div class="pick-states">' + o.codes.map(function (c) {
+      const s = PG.STATES[c];
+      const owner = st.owners[c] !== undefined ? PG.player(st.owners[c]) : null;
+      return '<button type="button" class="pick-state" data-code="' + c + '"' + (owner ? ' style="--owner:' + owner.color + '"' : '') + '>' +
+        '<b>' + c + '</b><span>' + esc(tx(s.name)) + '</span><small>' + s.ev + ' ' + esc(t('evShort')) + (owner ? ' · ' + esc(owner.name) : '') + '</small></button>';
+    }).join('') + '</div>';
+    let picked = null;
+    return modal({
+      kind: 'state', eyebrow: t('budgetTitle'), icon: PG.medallion('cityhall'), title: o.title, html: html, wide: true,
+      buttons: [{ label: t('cancel'), value: null, cls: 'btn-outline' }], dismissable: true, noFocus: true,
+      onMount: function (card, close) {
+        $$('.pick-state', card).forEach(function (b) { b.addEventListener('click', function () { picked = b.dataset.code; close(picked); }); });
+      }
+    }).then(function (v) { return v === null ? null : picked; });
   }
 
   /* -----------------------------------------------------------------------
@@ -1105,14 +1196,15 @@ window.PG = window.PG || {};
   PG.UI = {
     init: init,
     ICON: ICON,
-    ADVISOR_COST: ADVISOR_COST,
     modal: modal,
     event: event,
     toast: toast,
-    quiz: quiz,
     duel: duel,
+    debate: debate,
+    choice: choice,
     stateChallenge: stateChallenge,
-    chooseDie: chooseDie,
+    pickPlayer: pickPlayer,
+    pickState: pickState,
     victory: victory,
     fieldInfo: fieldInfo,
     rollDice: rollDice,
